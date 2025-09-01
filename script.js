@@ -148,7 +148,7 @@ class FinancialCalculator {
         return `${percent.toFixed(1)}%`;
     }
 
-    static calculateWithdrawalTaxes(futureValue401K, retirementIncome, withdrawalStrategy) {
+    static calculateWithdrawalTaxes(futureValue401K, retirementIncome, withdrawalStrategy, investmentReturn = 7) {
         const results = {};
         
         // Lump sum withdrawal
@@ -161,9 +161,12 @@ class FinancialCalculator {
             taxRate: (lumpSumTaxes.total / futureValue401K) * 100
         };
         
-        // Annual withdrawals (assuming 20-year retirement)
+        // Annual withdrawals (assuming 20-year retirement) with continued earnings
         const retirementYears = 20;
-        const annualWithdrawal = futureValue401K / retirementYears;
+        const annualReturn = investmentReturn / 100;
+        
+        // Calculate annual withdrawal that depletes account over 20 years with continued growth
+        const annualWithdrawal = this.calculateAnnualWithdrawal(futureValue401K, annualReturn, retirementYears);
         const annualIncome = annualWithdrawal + retirementIncome;
         const annualTaxes = TaxCalculator.calculateTotalTaxes(annualIncome);
         results.annual = {
@@ -185,6 +188,19 @@ class FinancialCalculator {
         };
         
         return results;
+    }
+
+    static calculateAnnualWithdrawal(principal, annualReturn, years) {
+        // Calculate the annual withdrawal amount that will deplete the account over the given years
+        // while accounting for continued growth on the remaining balance
+        if (annualReturn === 0) {
+            return principal / years;
+        }
+        
+        // Using the annuity formula: PMT = PV * [r(1+r)^n] / [(1+r)^n - 1]
+        const numerator = annualReturn * Math.pow(1 + annualReturn, years);
+        const denominator = Math.pow(1 + annualReturn, years) - 1;
+        return principal * (numerator / denominator);
     }
 
     static getPeriodTakeHome(annualTakeHome, frequency) {
@@ -402,11 +418,13 @@ class App {
         const withdrawalTaxes = FinancialCalculator.calculateWithdrawalTaxes(
             with401K.futureValue401K, 
             inputs.retirementIncome, 
-            inputs.withdrawalStrategy
+            inputs.withdrawalStrategy,
+            inputs.investmentReturn
         );
 
         // Update UI
         this.updateResults(no401K, with401K, taxSavings, wealthDifference, roi401K, inputs.salaryFrequency, withdrawalTaxes);
+        this.updateContributionLimitViz(inputs.grossSalary, inputs.contributionPercent);
         
         // Create charts
         this.chartManager.createTakeHomeChart({
@@ -466,6 +484,38 @@ class App {
         document.getElementById('monthlyTaxes').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.monthly.taxes);
         document.getElementById('monthlyNet').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.monthly.net);
         document.getElementById('monthlyTaxRate').textContent = FinancialCalculator.formatPercent(withdrawalTaxes.monthly.taxRate);
+    }
+
+    updateContributionLimitViz(grossSalary, contributionPercent) {
+        const viz = document.getElementById('contributionLimitViz');
+        const fill = document.getElementById('limitFill');
+        const text = document.getElementById('limitText');
+        
+        if (grossSalary <= 0) {
+            viz.style.display = 'none';
+            return;
+        }
+        
+        const requestedContribution = grossSalary * (contributionPercent / 100);
+        const isCapped = requestedContribution > EMPLOYEE_401K_LIMIT;
+        const actualContribution = Math.min(requestedContribution, EMPLOYEE_401K_LIMIT);
+        
+        // Show visualization
+        viz.style.display = 'block';
+        
+        // Calculate percentage of limit used
+        const limitPercentage = (actualContribution / EMPLOYEE_401K_LIMIT) * 100;
+        
+        // Update visual bar
+        fill.style.width = `${Math.min(limitPercentage, 100)}%`;
+        
+        if (isCapped) {
+            fill.classList.add('capped');
+            text.textContent = `Capped at $${EMPLOYEE_401K_LIMIT.toLocaleString()} (${contributionPercent}% = $${requestedContribution.toLocaleString()})`;
+        } else {
+            fill.classList.remove('capped');
+            text.textContent = `$${actualContribution.toLocaleString()} of $${EMPLOYEE_401K_LIMIT.toLocaleString()} limit`;
+        }
     }
 }
 

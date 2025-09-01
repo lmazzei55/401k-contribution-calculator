@@ -97,6 +97,42 @@ header p {
     font-style: italic;
 }
 
+.contribution-limit-viz {
+    margin-top: 10px;
+}
+
+.limit-bar {
+    position: relative;
+    height: 20px;
+    background-color: #e1e5e9;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #ccc;
+}
+
+.limit-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4ecdc4 0%, #44a08d 100%);
+    border-radius: 10px;
+    transition: width 0.3s ease;
+    position: relative;
+}
+
+.limit-fill.capped {
+    background: linear-gradient(90deg, #ff6b6b 0%, #ee5a52 100%);
+}
+
+.limit-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #333;
+    text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+}
+
 .calculate-btn {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
