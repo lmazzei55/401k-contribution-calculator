@@ -30,6 +30,19 @@ const TAX_BRACKETS = {
 const FICA_RATE = 0.0765; // 6.2% Social Security + 1.45% Medicare
 const SOCIAL_SECURITY_WAGE_BASE = 160200; // 2024 limit
 
+// 401K limits for 2024
+const EMPLOYEE_401K_LIMIT = 23000; // Maximum employee contribution
+const TOTAL_401K_LIMIT = 69000; // Maximum total contribution (employee + employer)
+
+// Salary frequency multipliers
+const SALARY_FREQUENCY = {
+    weekly: 52,
+    biweekly: 26,
+    semimonthly: 24,
+    monthly: 12,
+    annually: 1
+};
+
 class TaxCalculator {
     static calculateTax(income, brackets) {
         let tax = 0;
@@ -66,12 +79,13 @@ class TaxCalculator {
 
 class FinancialCalculator {
     static calculate401KScenario(grossSalary, contributionPercent, employerMatch, investmentReturn, years) {
-        const contribution = grossSalary * (contributionPercent / 100);
-        const employerContribution = grossSalary * (employerMatch / 100);
-        const total401KContribution = contribution + employerContribution;
+        // Calculate contribution amount, respecting 401K limits
+        const maxContribution = Math.min(grossSalary * (contributionPercent / 100), EMPLOYEE_401K_LIMIT);
+        const employerContribution = Math.min(grossSalary * (employerMatch / 100), EMPLOYEE_401K_LIMIT * 0.5); // Typical employer match limit
+        const total401KContribution = maxContribution + employerContribution;
         
         // Taxable income after 401K contribution
-        const taxableIncome = grossSalary - contribution;
+        const taxableIncome = grossSalary - maxContribution;
         const taxes = TaxCalculator.calculateTotalTaxes(taxableIncome);
         const takeHomePay = taxableIncome - taxes.total;
         
@@ -79,7 +93,7 @@ class FinancialCalculator {
         const futureValue401K = this.calculateFutureValue(total401KContribution, investmentReturn, years);
         
         return {
-            contribution,
+            contribution: maxContribution,
             employerContribution,
             total401KContribution,
             taxableIncome,
@@ -94,7 +108,7 @@ class FinancialCalculator {
         const takeHomePay = grossSalary - taxes.total;
         
         // Amount that would have been contributed to 401K
-        const potentialContribution = grossSalary * (contributionPercent / 100);
+        const potentialContribution = Math.min(grossSalary * (contributionPercent / 100), EMPLOYEE_401K_LIMIT);
         const afterTaxContribution = potentialContribution * (1 - (taxes.federal + taxes.state) / grossSalary);
         
         // Future value of brokerage investment (after-tax)
@@ -132,6 +146,50 @@ class FinancialCalculator {
 
     static formatPercent(percent) {
         return `${percent.toFixed(1)}%`;
+    }
+
+    static calculateWithdrawalTaxes(futureValue401K, retirementIncome, withdrawalStrategy) {
+        const results = {};
+        
+        // Lump sum withdrawal
+        const lumpSumIncome = futureValue401K + retirementIncome;
+        const lumpSumTaxes = TaxCalculator.calculateTotalTaxes(lumpSumIncome);
+        results.lumpSum = {
+            total: futureValue401K,
+            taxes: lumpSumTaxes.total,
+            net: futureValue401K - lumpSumTaxes.total,
+            taxRate: (lumpSumTaxes.total / futureValue401K) * 100
+        };
+        
+        // Annual withdrawals (assuming 20-year retirement)
+        const retirementYears = 20;
+        const annualWithdrawal = futureValue401K / retirementYears;
+        const annualIncome = annualWithdrawal + retirementIncome;
+        const annualTaxes = TaxCalculator.calculateTotalTaxes(annualIncome);
+        results.annual = {
+            withdrawal: annualWithdrawal,
+            taxes: annualTaxes.total,
+            net: annualWithdrawal - annualTaxes.total,
+            taxRate: (annualTaxes.total / annualWithdrawal) * 100
+        };
+        
+        // Monthly withdrawals
+        const monthlyWithdrawal = annualWithdrawal / 12;
+        const monthlyIncome = monthlyWithdrawal * 12 + retirementIncome;
+        const monthlyTaxes = TaxCalculator.calculateTotalTaxes(monthlyIncome);
+        results.monthly = {
+            withdrawal: monthlyWithdrawal,
+            taxes: monthlyTaxes.total / 12,
+            net: monthlyWithdrawal - (monthlyTaxes.total / 12),
+            taxRate: (monthlyTaxes.total / monthlyIncome) * 100
+        };
+        
+        return results;
+    }
+
+    static getPeriodTakeHome(annualTakeHome, frequency) {
+        const periodsPerYear = SALARY_FREQUENCY[frequency];
+        return annualTakeHome / periodsPerYear;
     }
 }
 
@@ -305,7 +363,10 @@ class App {
             contributionPercent: parseFloat(document.getElementById('contributionPercent').value) || 0,
             employerMatch: parseFloat(document.getElementById('employerMatch').value) || 0,
             investmentReturn: parseFloat(document.getElementById('investmentReturn').value) || 0,
-            years: parseInt(document.getElementById('years').value) || 0
+            years: parseInt(document.getElementById('years').value) || 0,
+            salaryFrequency: document.getElementById('salaryFrequency').value,
+            withdrawalStrategy: document.getElementById('withdrawalStrategy').value,
+            retirementIncome: parseFloat(document.getElementById('retirementIncome').value) || 0
         };
     }
 
@@ -337,8 +398,15 @@ class App {
         const wealthDifference = with401K.futureValue401K - no401K.futureValueBrokerage;
         const roi401K = (wealthDifference / (with401K.contribution * inputs.years)) * 100;
 
+        // Calculate withdrawal taxes
+        const withdrawalTaxes = FinancialCalculator.calculateWithdrawalTaxes(
+            with401K.futureValue401K, 
+            inputs.retirementIncome, 
+            inputs.withdrawalStrategy
+        );
+
         // Update UI
-        this.updateResults(no401K, with401K, taxSavings, wealthDifference, roi401K);
+        this.updateResults(no401K, with401K, taxSavings, wealthDifference, roi401K, inputs.salaryFrequency, withdrawalTaxes);
         
         // Create charts
         this.chartManager.createTakeHomeChart({
@@ -359,15 +427,21 @@ class App {
         document.getElementById('resultsSection').style.display = 'block';
     }
 
-    updateResults(no401K, with401K, taxSavings, wealthDifference, roi401K) {
+    updateResults(no401K, with401K, taxSavings, wealthDifference, roi401K, salaryFrequency, withdrawalTaxes) {
         // Without 401K
         document.getElementById('takehomeNo401k').textContent = FinancialCalculator.formatCurrency(no401K.takeHomePay);
+        document.getElementById('periodTakehomeNo401k').textContent = FinancialCalculator.formatCurrency(
+            FinancialCalculator.getPeriodTakeHome(no401K.takeHomePay, salaryFrequency)
+        );
         document.getElementById('taxesNo401k').textContent = FinancialCalculator.formatCurrency(no401K.taxes.total);
         document.getElementById('brokerageInvestment').textContent = FinancialCalculator.formatCurrency(no401K.afterTaxContribution);
         document.getElementById('futureValueBrokerage').textContent = FinancialCalculator.formatCurrency(no401K.futureValueBrokerage);
 
         // With 401K
         document.getElementById('takehomeWith401k').textContent = FinancialCalculator.formatCurrency(with401K.takeHomePay);
+        document.getElementById('periodTakehomeWith401k').textContent = FinancialCalculator.formatCurrency(
+            FinancialCalculator.getPeriodTakeHome(with401K.takeHomePay, salaryFrequency)
+        );
         document.getElementById('taxesWith401k').textContent = FinancialCalculator.formatCurrency(with401K.taxes.total);
         document.getElementById('contribution401k').textContent = FinancialCalculator.formatCurrency(with401K.total401KContribution);
         document.getElementById('futureValue401k').textContent = FinancialCalculator.formatCurrency(with401K.futureValue401K);
@@ -376,6 +450,22 @@ class App {
         document.getElementById('taxSavings').textContent = FinancialCalculator.formatCurrency(taxSavings);
         document.getElementById('wealthDifference').textContent = FinancialCalculator.formatCurrency(wealthDifference);
         document.getElementById('roi401k').textContent = FinancialCalculator.formatPercent(roi401K);
+
+        // Withdrawal taxes
+        document.getElementById('lumpSumTotal').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.lumpSum.total);
+        document.getElementById('lumpSumTaxes').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.lumpSum.taxes);
+        document.getElementById('lumpSumNet').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.lumpSum.net);
+        document.getElementById('lumpSumTaxRate').textContent = FinancialCalculator.formatPercent(withdrawalTaxes.lumpSum.taxRate);
+
+        document.getElementById('annualWithdrawal').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.annual.withdrawal);
+        document.getElementById('annualTaxes').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.annual.taxes);
+        document.getElementById('annualNet').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.annual.net);
+        document.getElementById('annualTaxRate').textContent = FinancialCalculator.formatPercent(withdrawalTaxes.annual.taxRate);
+
+        document.getElementById('monthlyWithdrawal').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.monthly.withdrawal);
+        document.getElementById('monthlyTaxes').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.monthly.taxes);
+        document.getElementById('monthlyNet').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.monthly.net);
+        document.getElementById('monthlyTaxRate').textContent = FinancialCalculator.formatPercent(withdrawalTaxes.monthly.taxRate);
     }
 }
 
