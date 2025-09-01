@@ -236,6 +236,7 @@ class ChartManager {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                aspectRatio: 1.5,
                 plugins: {
                     legend: {
                         display: false
@@ -256,6 +257,14 @@ class ChartManager {
                                 return FinancialCalculator.formatCurrency(value);
                             }
                         }
+                    }
+                },
+                layout: {
+                    padding: {
+                        top: 10,
+                        bottom: 10,
+                        left: 10,
+                        right: 10
                     }
                 }
             }
@@ -284,6 +293,7 @@ class ChartManager {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                aspectRatio: 1.5,
                 plugins: {
                     legend: {
                         display: false
@@ -304,6 +314,14 @@ class ChartManager {
                                 return FinancialCalculator.formatCurrency(value);
                             }
                         }
+                    }
+                },
+                layout: {
+                    padding: {
+                        top: 10,
+                        bottom: 10,
+                        left: 10,
+                        right: 10
                     }
                 }
             }
@@ -335,9 +353,14 @@ class ChartManager {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                aspectRatio: 1,
                 plugins: {
                     legend: {
-                        position: 'bottom'
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true
+                        }
                     },
                     tooltip: {
                         callbacks: {
@@ -345,6 +368,14 @@ class ChartManager {
                                 return context.label + ': ' + FinancialCalculator.formatCurrency(context.parsed);
                             }
                         }
+                    }
+                },
+                layout: {
+                    padding: {
+                        top: 10,
+                        bottom: 10,
+                        left: 10,
+                        right: 10
                     }
                 }
             }
@@ -511,10 +542,12 @@ class App {
         
         if (isCapped) {
             fill.classList.add('capped');
-            text.textContent = `Capped at $${EMPLOYEE_401K_LIMIT.toLocaleString()} (${contributionPercent}% = $${requestedContribution.toLocaleString()})`;
+            text.textContent = `Capped at $${EMPLOYEE_401K_LIMIT.toLocaleString()}`;
+            text.classList.add('small');
         } else {
             fill.classList.remove('capped');
-            text.textContent = `$${actualContribution.toLocaleString()} of $${EMPLOYEE_401K_LIMIT.toLocaleString()} limit`;
+            text.textContent = `$${actualContribution.toLocaleString()} of $${EMPLOYEE_401K_LIMIT.toLocaleString()}`;
+            text.classList.remove('small');
         }
     }
 }
