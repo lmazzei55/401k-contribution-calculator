@@ -78,7 +78,7 @@ class TaxCalculator {
 }
 
 class FinancialCalculator {
-    static calculate401KScenario(grossSalary, contributionPercent, employerMatch, investmentReturn, years, targetTakeHome = null, accountType = 'traditional') {
+    static calculate401KScenario(grossSalary, contributionPercent, employerMatch, investmentReturn, years, targetTakeHome = null, accountType = 'traditional', roth401kMax = 0, rothIRA = 0) {
         const contributionAmount = Math.min(grossSalary * (contributionPercent / 100), EMPLOYEE_401K_LIMIT);
         const employerContribution = Math.min(grossSalary * (employerMatch / 100), EMPLOYEE_401K_LIMIT * 0.5); // Employer match is always pre-tax
 
@@ -115,18 +115,17 @@ class FinancialCalculator {
             contribution: contributionAmount,
             employerContribution,
             total401KContribution,
-            trad401kContribution,
-            roth401kContribution,
-            rothIRAContribution,
+            trad401kContribution: contributionAmount,
+            roth401kContribution: roth401kMax,
+            rothIRAContribution: rothIRA,
             additionalBrokerage,
             totalFutureValue: futureValueEmployee + futureValueEmployer + futureValueAdditionalBrokerage,
             taxableIncome,
             taxes,
             takeHomePay,
-            futureValueTrad401k,
-            futureValueRoth401k,
-            futureValueEmployerMatch: futureValueEmployer,
-            futureValueRothIRA,
+            futureValueTrad401k: futureValueEmployee,
+            futureValueRoth401k: this.calculateFutureValue(roth401kMax, investmentReturn, years),
+            futureValueRothIRA: this.calculateFutureValue(rothIRA, investmentReturn, years),
             futureValueAdditionalBrokerage,
             grossSalary
         };
@@ -557,7 +556,8 @@ class App {
             salaryFrequency: document.getElementById('salaryFrequency').value,
             retirementIncome: parseFloat(document.getElementById('retirementIncome').value) || 0,
             retirementYears: parseInt(document.getElementById('retirementYears').value) || 20,
-            accountType: document.getElementById('accountType').value
+            roth401kMax: parseFloat(document.getElementById('roth401kMax').value) || 0,
+            rothIRA: parseFloat(document.getElementById('rothIRAContribution').value) || 0,
         };
     }
 
@@ -580,7 +580,9 @@ class App {
             inputs.investmentReturn,
             inputs.years,
             targetAnnualTakeHome,
-            inputs.accountType
+            'traditional', // This will be handled internally now
+            inputs.roth401kMax,
+            inputs.rothIRA
         );
 
         const no401K = FinancialCalculator.calculateNo401KScenario(
@@ -826,49 +828,54 @@ class App {
                 return;
             }
 
-            // --- Simulate Traditional 401K ---
-            const traditionalPercent = FinancialCalculator.findMaxContributionForTarget(inputs.grossSalary, targetAnnualTakeHome, inputs.employerMatch, 'traditional');
-            const traditionalScenario = FinancialCalculator.calculate401KScenario(inputs.grossSalary, traditionalPercent, inputs.employerMatch, inputs.investmentReturn, inputs.years, targetAnnualTakeHome, 'traditional');
-            const traditionalWithdrawal = FinancialCalculator.calculateCombinedWithdrawalTaxes(
-                traditionalScenario.futureValueTrad401k,
-                traditionalScenario.futureValueRoth401k,
-                traditionalScenario.futureValueEmployerMatch,
-                traditionalScenario.futureValueRothIRA,
-                traditionalScenario.futureValueAdditionalBrokerage,
-                inputs.retirementIncome,
-                inputs.investmentReturn,
-                inputs.retirementYears
-            );
-            const traditionalNetWorth = traditionalWithdrawal.lumpSum.net;
+            let bestMix = {
+                roth401kAmount: 0,
+                netWorth: -Infinity
+            };
 
-            // --- Simulate Roth 401K ---
-            const rothPercent = FinancialCalculator.findMaxContributionForTarget(inputs.grossSalary, targetAnnualTakeHome, inputs.employerMatch, 'roth');
-            const rothScenario = FinancialCalculator.calculate401KScenario(inputs.grossSalary, rothPercent, inputs.employerMatch, inputs.investmentReturn, inputs.years, targetAnnualTakeHome, 'roth');
-            const rothWithdrawal = FinancialCalculator.calculateCombinedWithdrawalTaxes(
-                rothScenario.futureValueTrad401k,
-                rothScenario.futureValueRoth401k,
-                rothScenario.futureValueEmployerMatch,
-                rothScenario.futureValueRothIRA,
-                rothScenario.futureValueAdditionalBrokerage,
-                inputs.retirementIncome,
-                inputs.investmentReturn,
-                inputs.retirementYears
-            );
-            const rothNetWorth = rothWithdrawal.lumpSum.net;
+            const maxTotalContribution = FinancialCalculator.findMaxContributionForTarget(inputs.grossSalary, targetAnnualTakeHome, inputs.employerMatch, 'traditional'); // Find max possible %
 
-            // --- Compare and Set Optimal Strategy ---
-            if (traditionalNetWorth > rothNetWorth) {
-                document.getElementById('accountType').value = 'traditional';
-                document.getElementById('contributionPercent').value = traditionalPercent;
-                optimizerMessage.textContent = `Optimal Strategy: Traditional 401K at ${traditionalPercent}%.`;
-            } else {
-                document.getElementById('accountType').value = 'roth';
-                document.getElementById('contributionPercent').value = rothPercent;
-                optimizerMessage.textContent = `Optimal Strategy: Roth 401K at ${rothPercent}%.`;
+            // Iterate through possible Roth 401K allocations
+            for (let rothAmount = 0; rothAmount <= inputs.roth401kMax; rothAmount += 500) {
+                 const scenario = FinancialCalculator.calculate401KScenario(
+                    inputs.grossSalary,
+                    maxTotalContribution,
+                    inputs.employerMatch,
+                    inputs.investmentReturn,
+                    inputs.years,
+                    targetAnnualTakeHome,
+                    'traditional', // Base calculation type
+                    rothAmount, // Test this roth amount
+                    inputs.rothIRA
+                );
+
+                const withdrawal = FinancialCalculator.calculateCombinedWithdrawalTaxes(
+                    scenario.futureValueTrad401k,
+                    scenario.futureValueRoth401k,
+                    scenario.futureValueEmployerMatch,
+                    scenario.futureValueRothIRA,
+                    scenario.futureValueAdditionalBrokerage,
+                    inputs.retirementIncome,
+                    inputs.investmentReturn,
+                    inputs.retirementYears
+                );
+                
+                if (withdrawal.lumpSum.net > bestMix.netWorth) {
+                    bestMix = {
+                        roth401kAmount: rothAmount,
+                        netWorth: withdrawal.lumpSum.net,
+                        contributionPercent: maxTotalContribution
+                    };
+                }
             }
+            
+            // Set the optimal strategy
+            document.getElementById('contributionPercent').value = bestMix.contributionPercent;
+            document.getElementById('roth401kMax').value = bestMix.roth401kAmount;
+            optimizerMessage.textContent = `Optimal Mix: ${bestMix.contributionPercent}% Total 401K, with ${FinancialCalculator.formatCurrency(bestMix.roth401kAmount)} to Roth 401K.`;
 
             this.calculate();
-        }, 100); // Short delay to show "Analyzing..." message
+        }, 100); 
     }
 
     updateTargetInfoSection(inputs, targetAnnualTakeHome, with401K, no401K) {
