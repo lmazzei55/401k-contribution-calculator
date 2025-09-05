@@ -551,6 +551,27 @@ class App {
             inputs.retirementYears
         );
 
+        // For the lump sum, we need the future value at the start of retirement
+        const futureValueAtRetirement401k = FinancialCalculator.calculateFutureValue(with401K.total401KContribution, inputs.investmentReturn, inputs.years);
+        const lumpSumTaxes401k = TaxCalculator.calculateTotalTaxes(futureValueAtRetirement401k + inputs.retirementIncome);
+        withdrawalTaxes.lumpSum = {
+            total: futureValueAtRetirement401k,
+            taxes: lumpSumTaxes401k.total,
+            net: futureValueAtRetirement401k - lumpSumTaxes401k.total,
+            taxRate: (lumpSumTaxes401k.total / futureValueAtRetirement401k) * 100
+        };
+
+        const futureValueAtRetirementBrokerage = FinancialCalculator.calculateFutureValue(no401K.brokerageInvestment, inputs.investmentReturn, inputs.years);
+        const capitalGains = futureValueAtRetirementBrokerage; // Assuming all growth is capital gains
+        const longTermCapitalGainsRate = 0.20; // 20% for high earners, 15% for most people
+        const lumpSumCapitalGainsTax = capitalGains * longTermCapitalGainsRate;
+        brokerageWithdrawalTaxes.lumpSum = {
+            total: futureValueAtRetirementBrokerage,
+            taxes: lumpSumCapitalGainsTax,
+            net: futureValueAtRetirementBrokerage - lumpSumCapitalGainsTax,
+            taxRate: (lumpSumCapitalGainsTax / futureValueAtRetirementBrokerage) * 100
+        };
+        
         // Update UI
         this.updateResults(no401K, with401K, taxSavings, wealthDifference, roi401K, inputs.salaryFrequency, withdrawalTaxes, brokerageWithdrawalTaxes);
         this.updateContributionLimitViz(inputs.grossSalary, inputs.contributionPercent);
