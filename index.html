@@ -68,6 +68,18 @@
                     <small class="help-text">Other income during retirement (pension, Social Security, etc.)</small>
                 </div>
             </div>
+            <div class="input-grid" style="margin-top: 10px;">
+                <div class="input-group">
+                    <label for="targetPerPay">Target Take-home per Paycheck ($)</label>
+                    <input type="number" id="targetPerPay" value="" min="0" step="50" placeholder="e.g., 2500">
+                    <small class="help-text">Optional: enter desired per-paycheck net pay, then click Solve</small>
+                </div>
+                <div class="input-group">
+                    <label>&nbsp;</label>
+                    <button id="solveContributionBtn" class="calculate-btn">Solve Contribution %</button>
+                    <small id="solveMessage" class="help-text"></small>
+                </div>
+            </div>
             <button id="calculateBtn" class="calculate-btn">Calculate Impact</button>
         </div>
 

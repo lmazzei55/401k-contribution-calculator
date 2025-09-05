@@ -402,6 +402,22 @@ class App {
                 this.calculate();
             });
         });
+
+        // Recalculate on select changes
+        const selects = document.querySelectorAll('select');
+        selects.forEach(sel => {
+            sel.addEventListener('change', () => {
+                this.calculate();
+            });
+        });
+
+        // Inverse solver handler
+        const solveBtn = document.getElementById('solveContributionBtn');
+        if (solveBtn) {
+            solveBtn.addEventListener('click', () => {
+                this.solveContributionForTarget();
+            });
+        }
     }
 
     getInputValues() {
@@ -549,6 +565,68 @@ class App {
             text.textContent = `$${actualContribution.toLocaleString()} of $${EMPLOYEE_401K_LIMIT.toLocaleString()}`;
             text.classList.remove('small');
         }
+    }
+
+    solveContributionForTarget() {
+        const messageEl = document.getElementById('solveMessage');
+        const targetPerPay = parseFloat(document.getElementById('targetPerPay').value || '');
+        const inputs = this.getInputValues();
+        messageEl.textContent = '';
+
+        if (!targetPerPay || targetPerPay <= 0) {
+            messageEl.textContent = 'Enter a valid per-paycheck amount.';
+            return;
+        }
+
+        // Helper to compute per-period take home for a given contribution percent
+        const perPeriodTakeHomeFor = (percent) => {
+            const scenario = FinancialCalculator.calculate401KScenario(
+                inputs.grossSalary,
+                percent,
+                inputs.employerMatch,
+                inputs.investmentReturn,
+                inputs.years
+            );
+            return FinancialCalculator.getPeriodTakeHome(scenario.takeHomePay, inputs.salaryFrequency);
+        };
+
+        const perPeriodAt0 = perPeriodTakeHomeFor(0);
+        const maxPercentByLimit = Math.min(100, (EMPLOYEE_401K_LIMIT / Math.max(inputs.grossSalary, 1)) * 100);
+        const perPeriodAtMax = perPeriodTakeHomeFor(maxPercentByLimit);
+
+        // If target above what's possible with 0% contribution
+        if (targetPerPay >= perPeriodAt0 - 1) {
+            document.getElementById('contributionPercent').value = 0;
+            this.calculate();
+            messageEl.textContent = 'Target exceeds 0% contribution take-home; set to 0%.';
+            return;
+        }
+
+        // If target below what's possible at max contribution
+        if (targetPerPay <= perPeriodAtMax + 1) {
+            document.getElementById('contributionPercent').value = Math.round(maxPercentByLimit * 10) / 10;
+            this.calculate();
+            messageEl.textContent = 'Target requires hitting the annual $23,000 cap; set to max.';
+            return;
+        }
+
+        // Binary search for contribution percent
+        let low = 0;
+        let high = maxPercentByLimit;
+        for (let i = 0; i < 30; i++) {
+            const mid = (low + high) / 2;
+            const per = perPeriodTakeHomeFor(mid);
+            if (per > targetPerPay) {
+                // Need to contribute more to reduce take-home
+                low = mid;
+            } else {
+                high = mid;
+            }
+        }
+        const solved = Math.min(Math.max(high, 0), maxPercentByLimit);
+        document.getElementById('contributionPercent').value = Math.round(solved * 10) / 10;
+        this.calculate();
+        messageEl.textContent = 'Solved contribution set based on target.';
     }
 }
 
