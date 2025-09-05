@@ -299,7 +299,7 @@ class FinancialCalculator {
         return annualTakeHome / periodsPerYear;
     }
 
-    static findMaxContributionForTarget(grossSalary, targetAnnualTakeHome, employerMatch, accountType = 'traditional') {
+    static findMaxContributionForTarget(grossSalary, targetAnnualTakeHome, employerMatch, rothIRA = 0) {
         // Binary search to find the maximum contribution % that still meets target
         let low = 0;
         let high = Math.min(100, (EMPLOYEE_401K_LIMIT / grossSalary) * 100);
@@ -307,7 +307,7 @@ class FinancialCalculator {
         
         for (let i = 0; i < 30; i++) {
             const mid = (low + high) / 2;
-            const scenario = this.calculate401KScenario(grossSalary, mid, employerMatch, 7, 30, targetAnnualTakeHome, accountType);
+            const scenario = FinancialCalculator.calculate401KScenario(grossSalary, mid, employerMatch, 7, 30, targetAnnualTakeHome, 'traditional', 0, rothIRA);
             
             // Check if this contribution % allows us to meet the target take-home
             if (scenario.takeHomePay >= targetAnnualTakeHome - 1) {
@@ -787,12 +787,12 @@ class App {
             inputs.grossSalary, 
             targetAnnualTakeHome, 
             inputs.employerMatch,
-            inputs.accountType
+            inputs.rothIRA
         );
 
         // Check if target is achievable
         const scenarioAt0 = FinancialCalculator.calculate401KScenario(
-            inputs.grossSalary, 0, inputs.employerMatch, inputs.investmentReturn, inputs.years, targetAnnualTakeHome, inputs.accountType
+            inputs.grossSalary, 0, inputs.employerMatch, inputs.investmentReturn, inputs.years, targetAnnualTakeHome, inputs.accountType, inputs.roth401kMax, inputs.rothIRA
         );
         
         if (targetPerPay >= FinancialCalculator.getPeriodTakeHome(scenarioAt0.takeHomePay, inputs.salaryFrequency) - 1) {
@@ -834,7 +834,7 @@ class App {
                 netWorth: -Infinity
             };
 
-            const maxTotalContribution = FinancialCalculator.findMaxContributionForTarget(inputs.grossSalary, targetAnnualTakeHome, inputs.employerMatch, 'traditional'); // Find max possible %
+            const maxTotalContribution = FinancialCalculator.findMaxContributionForTarget(inputs.grossSalary, targetAnnualTakeHome, inputs.employerMatch, inputs.rothIRA); // Find max possible %
 
             // Iterate through possible Roth 401K allocations
             for (let rothAmount = 0; rothAmount <= inputs.roth401kMax; rothAmount += 500) {
