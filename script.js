@@ -596,7 +596,6 @@ class App {
         // Update UI
         this.updateResults(no401K, with401K, taxSavings, wealthDifference, roi401K, inputs.salaryFrequency, withdrawalTaxes, brokerageWithdrawalTaxes);
         this.updateContributionLimitViz(inputs.grossSalary, inputs.contributionPercent);
-        this.updateMaxContributionInfo(inputs, targetAnnualTakeHome);
         this.updateTargetInfoSection(inputs, targetAnnualTakeHome, with401K, no401K);
         
         // Create charts
@@ -751,57 +750,6 @@ class App {
         messageEl.textContent = `Max contribution ${maxContributionPercent}% while meeting target.`;
     }
 
-    updateMaxContributionInfo(inputs, targetAnnualTakeHome) {
-        const maxInfoEl = document.getElementById('maxContributionInfo');
-        
-        if (!targetAnnualTakeHome) {
-            maxInfoEl.style.display = 'none';
-            return;
-        }
-
-        const maxContributionPercent = FinancialCalculator.findMaxContributionForTarget(
-            inputs.grossSalary, 
-            targetAnnualTakeHome, 
-            inputs.employerMatch
-        );
-
-        maxInfoEl.style.display = 'block';
-        maxInfoEl.textContent = `Max contribution: ${maxContributionPercent}% while meeting target take-home`;
-    }
-
-    updateTargetInfoSection(inputs, targetAnnualTakeHome, with401K, no401K) {
-        const targetInfoSection = document.getElementById('targetInfoSection');
-        
-        if (!targetAnnualTakeHome) {
-            targetInfoSection.style.display = 'none';
-            return;
-        }
-
-        // Show the section
-        targetInfoSection.style.display = 'block';
-
-        // Update target information
-        const targetPerPay = parseFloat(document.getElementById('targetPerPay').value || '');
-        document.getElementById('targetPerPaycheck').textContent = FinancialCalculator.formatCurrency(targetPerPay);
-        document.getElementById('targetAnnualTakeHome').textContent = FinancialCalculator.formatCurrency(targetAnnualTakeHome);
-        
-        // Update salary frequency display
-        const frequencyLabels = {
-            weekly: 'Weekly (52 periods/year)',
-            biweekly: 'Bi-weekly (26 periods/year)',
-            semimonthly: 'Semi-monthly (24 periods/year)',
-            monthly: 'Monthly (12 periods/year)',
-            annually: 'Annually (1 period/year)'
-        };
-        document.getElementById('salaryFrequencyDisplay').textContent = frequencyLabels[inputs.salaryFrequency] || inputs.salaryFrequency;
-
-        // Update investment breakdown
-        document.getElementById('total401kInvestment').textContent = FinancialCalculator.formatCurrency(with401K.total401KContribution);
-        document.getElementById('totalAdditionalBrokerage').textContent = FinancialCalculator.formatCurrency(with401K.additionalBrokerage || 0);
-        
-        const totalInvestment = with401K.total401KContribution + (with401K.additionalBrokerage || 0);
-        document.getElementById('totalAnnualInvestment').textContent = FinancialCalculator.formatCurrency(totalInvestment);
-    }
 }
 
 // Initialize the app when the page loads
