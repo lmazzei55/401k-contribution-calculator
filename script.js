@@ -89,7 +89,7 @@ class FinancialCalculator {
         const taxes = TaxCalculator.calculateTotalTaxes(taxableIncome);
         const takeHomePay = taxableIncome - taxes.total;
         
-        // If target is set, invest excess in additional brokerage
+        // Calculate additional brokerage investment if we have excess beyond target
         let additionalBrokerage = 0;
         if (targetTakeHome && takeHomePay > targetTakeHome) {
             additionalBrokerage = takeHomePay - targetTakeHome;
@@ -119,26 +119,26 @@ class FinancialCalculator {
         const taxes = TaxCalculator.calculateTotalTaxes(grossSalary);
         const takeHomePay = grossSalary - taxes.total;
         
-        // Amount that would have been contributed to 401K
-        const potentialContribution = Math.min(grossSalary * (contributionPercent / 100), EMPLOYEE_401K_LIMIT);
-        const afterTaxContribution = potentialContribution * (1 - (taxes.federal + taxes.state) / grossSalary);
-        
-        // If target is set, invest the excess beyond target
-        let totalInvestment = afterTaxContribution;
-        if (targetTakeHome && takeHomePay > targetTakeHome) {
-            const excessTakeHome = takeHomePay - targetTakeHome;
-            totalInvestment += excessTakeHome;
+        // Calculate brokerage investment
+        let brokerageInvestment = 0;
+        if (targetTakeHome) {
+            // If we have excess beyond target, invest it
+            if (takeHomePay > targetTakeHome) {
+                brokerageInvestment = takeHomePay - targetTakeHome;
+            }
+        } else {
+            // Without target, we invest what would have been the 401K contribution (after-tax)
+            const potentialContribution = Math.min(grossSalary * (contributionPercent / 100), EMPLOYEE_401K_LIMIT);
+            brokerageInvestment = potentialContribution * (1 - (taxes.federal + taxes.state) / grossSalary);
         }
         
         // Future value of brokerage investment (after-tax)
-        const futureValueBrokerage = this.calculateFutureValue(totalInvestment, investmentReturn, years);
+        const futureValueBrokerage = this.calculateFutureValue(brokerageInvestment, investmentReturn, years);
         
         return {
             taxes,
             takeHomePay,
-            potentialContribution,
-            afterTaxContribution,
-            totalInvestment,
+            brokerageInvestment,
             futureValueBrokerage
         };
     }
@@ -238,6 +238,7 @@ class FinancialCalculator {
             const mid = (low + high) / 2;
             const scenario = this.calculate401KScenario(grossSalary, mid, employerMatch, 7, 30, targetAnnualTakeHome);
             
+            // Check if this contribution % allows us to meet the target take-home
             if (scenario.takeHomePay >= targetAnnualTakeHome - 1) {
                 // This contribution % still meets target
                 bestPercent = mid;
@@ -250,6 +251,7 @@ class FinancialCalculator {
         
         return Math.round(bestPercent * 10) / 10;
     }
+
 }
 
 class ChartManager {
@@ -549,7 +551,7 @@ class App {
             FinancialCalculator.getPeriodTakeHome(no401K.takeHomePay, salaryFrequency)
         );
         document.getElementById('taxesNo401k').textContent = FinancialCalculator.formatCurrency(no401K.taxes.total);
-        document.getElementById('brokerageInvestment').textContent = FinancialCalculator.formatCurrency(no401K.totalInvestment || no401K.afterTaxContribution);
+        document.getElementById('brokerageInvestment').textContent = FinancialCalculator.formatCurrency(no401K.brokerageInvestment);
         document.getElementById('futureValueBrokerage').textContent = FinancialCalculator.formatCurrency(no401K.futureValueBrokerage);
 
         // With 401K
