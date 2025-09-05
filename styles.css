@@ -229,6 +229,22 @@ header p {
     gap: 20px;
 }
 
+.target-info-section {
+    margin-bottom: 40px;
+}
+
+.target-info-section h2 {
+    margin-bottom: 25px;
+    color: #333;
+    font-size: 1.5rem;
+}
+
+.target-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
 .charts-section {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));

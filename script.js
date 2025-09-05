@@ -524,6 +524,7 @@ class App {
         this.updateResults(no401K, with401K, taxSavings, wealthDifference, roi401K, inputs.salaryFrequency, withdrawalTaxes);
         this.updateContributionLimitViz(inputs.grossSalary, inputs.contributionPercent);
         this.updateMaxContributionInfo(inputs, targetAnnualTakeHome);
+        this.updateTargetInfoSection(inputs, targetAnnualTakeHome, with401K, no401K);
         
         // Create charts
         this.chartManager.createTakeHomeChart({
@@ -561,6 +562,7 @@ class App {
         );
         document.getElementById('taxesWith401k').textContent = FinancialCalculator.formatCurrency(with401K.taxes.total);
         document.getElementById('contribution401k').textContent = FinancialCalculator.formatCurrency(with401K.total401KContribution);
+        document.getElementById('additionalBrokerage').textContent = FinancialCalculator.formatCurrency(with401K.additionalBrokerage || 0);
         document.getElementById('futureValue401k').textContent = FinancialCalculator.formatCurrency(with401K.totalFutureValue);
 
         // Benefits
@@ -680,6 +682,40 @@ class App {
 
         maxInfoEl.style.display = 'block';
         maxInfoEl.textContent = `Max contribution: ${maxContributionPercent}% while meeting target take-home`;
+    }
+
+    updateTargetInfoSection(inputs, targetAnnualTakeHome, with401K, no401K) {
+        const targetInfoSection = document.getElementById('targetInfoSection');
+        
+        if (!targetAnnualTakeHome) {
+            targetInfoSection.style.display = 'none';
+            return;
+        }
+
+        // Show the section
+        targetInfoSection.style.display = 'block';
+
+        // Update target information
+        const targetPerPay = parseFloat(document.getElementById('targetPerPay').value || '');
+        document.getElementById('targetPerPaycheck').textContent = FinancialCalculator.formatCurrency(targetPerPay);
+        document.getElementById('targetAnnualTakeHome').textContent = FinancialCalculator.formatCurrency(targetAnnualTakeHome);
+        
+        // Update salary frequency display
+        const frequencyLabels = {
+            weekly: 'Weekly (52 periods/year)',
+            biweekly: 'Bi-weekly (26 periods/year)',
+            semimonthly: 'Semi-monthly (24 periods/year)',
+            monthly: 'Monthly (12 periods/year)',
+            annually: 'Annually (1 period/year)'
+        };
+        document.getElementById('salaryFrequencyDisplay').textContent = frequencyLabels[inputs.salaryFrequency] || inputs.salaryFrequency;
+
+        // Update investment breakdown
+        document.getElementById('total401kInvestment').textContent = FinancialCalculator.formatCurrency(with401K.total401KContribution);
+        document.getElementById('totalAdditionalBrokerage').textContent = FinancialCalculator.formatCurrency(with401K.additionalBrokerage || 0);
+        
+        const totalInvestment = with401K.total401KContribution + (with401K.additionalBrokerage || 0);
+        document.getElementById('totalAnnualInvestment').textContent = FinancialCalculator.formatCurrency(totalInvestment);
     }
 }
 
