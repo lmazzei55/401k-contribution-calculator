@@ -59,13 +59,17 @@
                     <select id="withdrawalStrategy">
                         <option value="lumpsum">Lump Sum (all at once)</option>
                         <option value="annual" selected>Annual Withdrawals</option>
-                        <option value="monthly">Monthly Withdrawals</option>
                     </select>
                 </div>
                 <div class="input-group">
                     <label for="retirementIncome">Retirement Income (annual)</label>
                     <input type="number" id="retirementIncome" value="0" min="0" step="1000">
                     <small class="help-text">Other income during retirement (pension, Social Security, etc.)</small>
+                </div>
+                <div class="input-group">
+                    <label for="retirementYears">Retirement Withdrawal Period (years)</label>
+                    <input type="number" id="retirementYears" value="20" min="1" max="50" step="1">
+                    <small class="help-text">How many years to distribute withdrawals over</small>
                 </div>
             </div>
             <div class="input-grid" style="margin-top: 10px;">
@@ -160,13 +164,28 @@
                             <p><strong>Effective Tax Rate:</strong> <span id="annualTaxRate">0%</span></p>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <div class="withdrawal-section">
+                <h2>Brokerage Account Withdrawal Analysis</h2>
+                <div class="withdrawal-cards">
                     <div class="card">
-                        <h3>Monthly Withdrawals</h3>
+                        <h3>Lump Sum Withdrawal</h3>
                         <div class="card-content">
-                            <p><strong>Monthly Withdrawal:</strong> <span id="monthlyWithdrawal">$0</span></p>
-                            <p><strong>Monthly Taxes:</strong> <span id="monthlyTaxes">$0</span></p>
-                            <p><strong>Net Monthly Income:</strong> <span id="monthlyNet">$0</span></p>
-                            <p><strong>Effective Tax Rate:</strong> <span id="monthlyTaxRate">0%</span></p>
+                            <p><strong>Total Withdrawal:</strong> <span id="brokerageLumpSumTotal">$0</span></p>
+                            <p><strong>Capital Gains Tax:</strong> <span id="brokerageLumpSumTaxes">$0</span></p>
+                            <p><strong>Net After Taxes:</strong> <span id="brokerageLumpSumNet">$0</span></p>
+                            <p><strong>Effective Tax Rate:</strong> <span id="brokerageLumpSumTaxRate">0%</span></p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Annual Withdrawals</h3>
+                        <div class="card-content">
+                            <p><strong>Annual Withdrawal:</strong> <span id="brokerageAnnualWithdrawal">$0</span></p>
+                            <p><strong>Annual Capital Gains Tax:</strong> <span id="brokerageAnnualTaxes">$0</span></p>
+                            <p><strong>Net Annual Income:</strong> <span id="brokerageAnnualNet">$0</span></p>
+                            <p><strong>Effective Tax Rate:</strong> <span id="brokerageAnnualTaxRate">0%</span></p>
                         </div>
                     </div>
                 </div>

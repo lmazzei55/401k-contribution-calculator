@@ -168,7 +168,7 @@ class FinancialCalculator {
         return `${percent.toFixed(1)}%`;
     }
 
-    static calculateWithdrawalTaxes(futureValue401K, retirementIncome, withdrawalStrategy, investmentReturn = 7) {
+    static calculateWithdrawalTaxes(futureValue401K, retirementIncome, withdrawalStrategy, investmentReturn = 7, retirementYears = 20) {
         const results = {};
         
         // Lump sum withdrawal
@@ -181,11 +181,10 @@ class FinancialCalculator {
             taxRate: (lumpSumTaxes.total / futureValue401K) * 100
         };
         
-        // Annual withdrawals (assuming 20-year retirement) with continued earnings
-        const retirementYears = 20;
+        // Annual withdrawals with continued earnings
         const annualReturn = investmentReturn / 100;
         
-        // Calculate annual withdrawal that depletes account over 20 years with continued growth
+        // Calculate annual withdrawal that depletes account over retirement years with continued growth
         const annualWithdrawal = this.calculateAnnualWithdrawal(futureValue401K, annualReturn, retirementYears);
         const annualIncome = annualWithdrawal + retirementIncome;
         const annualTaxes = TaxCalculator.calculateTotalTaxes(annualIncome);
@@ -196,15 +195,37 @@ class FinancialCalculator {
             taxRate: (annualTaxes.total / annualWithdrawal) * 100
         };
         
-        // Monthly withdrawals
-        const monthlyWithdrawal = annualWithdrawal / 12;
-        const monthlyIncome = monthlyWithdrawal * 12 + retirementIncome;
-        const monthlyTaxes = TaxCalculator.calculateTotalTaxes(monthlyIncome);
-        results.monthly = {
-            withdrawal: monthlyWithdrawal,
-            taxes: monthlyTaxes.total / 12,
-            net: monthlyWithdrawal - (monthlyTaxes.total / 12),
-            taxRate: (monthlyTaxes.total / monthlyIncome) * 100
+        return results;
+    }
+
+    static calculateBrokerageWithdrawalTaxes(futureValueBrokerage, retirementIncome, investmentReturn = 7, retirementYears = 20) {
+        const results = {};
+        
+        // Lump sum withdrawal - only capital gains are taxed
+        const capitalGains = futureValueBrokerage; // Assuming all growth is capital gains
+        const longTermCapitalGainsRate = 0.20; // 20% for high earners, 15% for most people
+        const lumpSumCapitalGainsTax = capitalGains * longTermCapitalGainsRate;
+        
+        results.lumpSum = {
+            total: futureValueBrokerage,
+            taxes: lumpSumCapitalGainsTax,
+            net: futureValueBrokerage - lumpSumCapitalGainsTax,
+            taxRate: (lumpSumCapitalGainsTax / futureValueBrokerage) * 100
+        };
+        
+        // Annual withdrawals with continued earnings
+        const annualReturn = investmentReturn / 100;
+        const annualWithdrawal = this.calculateAnnualWithdrawal(futureValueBrokerage, annualReturn, retirementYears);
+        
+        // For annual withdrawals, only the growth portion is taxed as capital gains
+        const annualCapitalGains = annualWithdrawal * 0.7; // Assume 70% is growth, 30% is principal
+        const annualCapitalGainsTax = annualCapitalGains * longTermCapitalGainsRate;
+        
+        results.annual = {
+            withdrawal: annualWithdrawal,
+            taxes: annualCapitalGainsTax,
+            net: annualWithdrawal - annualCapitalGainsTax,
+            taxRate: (annualCapitalGainsTax / annualWithdrawal) * 100
         };
         
         return results;
@@ -474,7 +495,8 @@ class App {
             years: parseInt(document.getElementById('years').value) || 0,
             salaryFrequency: document.getElementById('salaryFrequency').value,
             withdrawalStrategy: document.getElementById('withdrawalStrategy').value,
-            retirementIncome: parseFloat(document.getElementById('retirementIncome').value) || 0
+            retirementIncome: parseFloat(document.getElementById('retirementIncome').value) || 0,
+            retirementYears: parseInt(document.getElementById('retirementYears').value) || 20
         };
     }
 
@@ -517,11 +539,20 @@ class App {
             with401K.futureValue401K, 
             inputs.retirementIncome, 
             inputs.withdrawalStrategy,
-            inputs.investmentReturn
+            inputs.investmentReturn,
+            inputs.retirementYears
+        );
+
+        // Calculate brokerage withdrawal taxes
+        const brokerageWithdrawalTaxes = FinancialCalculator.calculateBrokerageWithdrawalTaxes(
+            no401K.futureValueBrokerage,
+            inputs.retirementIncome,
+            inputs.investmentReturn,
+            inputs.retirementYears
         );
 
         // Update UI
-        this.updateResults(no401K, with401K, taxSavings, wealthDifference, roi401K, inputs.salaryFrequency, withdrawalTaxes);
+        this.updateResults(no401K, with401K, taxSavings, wealthDifference, roi401K, inputs.salaryFrequency, withdrawalTaxes, brokerageWithdrawalTaxes);
         this.updateContributionLimitViz(inputs.grossSalary, inputs.contributionPercent);
         this.updateMaxContributionInfo(inputs, targetAnnualTakeHome);
         this.updateTargetInfoSection(inputs, targetAnnualTakeHome, with401K, no401K);
@@ -545,7 +576,7 @@ class App {
         document.getElementById('resultsSection').style.display = 'block';
     }
 
-    updateResults(no401K, with401K, taxSavings, wealthDifference, roi401K, salaryFrequency, withdrawalTaxes) {
+    updateResults(no401K, with401K, taxSavings, wealthDifference, roi401K, salaryFrequency, withdrawalTaxes, brokerageWithdrawalTaxes) {
         // Without 401K
         document.getElementById('takehomeNo401k').textContent = FinancialCalculator.formatCurrency(no401K.takeHomePay);
         document.getElementById('periodTakehomeNo401k').textContent = FinancialCalculator.formatCurrency(
@@ -581,10 +612,16 @@ class App {
         document.getElementById('annualNet').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.annual.net);
         document.getElementById('annualTaxRate').textContent = FinancialCalculator.formatPercent(withdrawalTaxes.annual.taxRate);
 
-        document.getElementById('monthlyWithdrawal').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.monthly.withdrawal);
-        document.getElementById('monthlyTaxes').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.monthly.taxes);
-        document.getElementById('monthlyNet').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.monthly.net);
-        document.getElementById('monthlyTaxRate').textContent = FinancialCalculator.formatPercent(withdrawalTaxes.monthly.taxRate);
+        // Brokerage withdrawal taxes
+        document.getElementById('brokerageLumpSumTotal').textContent = FinancialCalculator.formatCurrency(brokerageWithdrawalTaxes.lumpSum.total);
+        document.getElementById('brokerageLumpSumTaxes').textContent = FinancialCalculator.formatCurrency(brokerageWithdrawalTaxes.lumpSum.taxes);
+        document.getElementById('brokerageLumpSumNet').textContent = FinancialCalculator.formatCurrency(brokerageWithdrawalTaxes.lumpSum.net);
+        document.getElementById('brokerageLumpSumTaxRate').textContent = FinancialCalculator.formatPercent(brokerageWithdrawalTaxes.lumpSum.taxRate);
+
+        document.getElementById('brokerageAnnualWithdrawal').textContent = FinancialCalculator.formatCurrency(brokerageWithdrawalTaxes.annual.withdrawal);
+        document.getElementById('brokerageAnnualTaxes').textContent = FinancialCalculator.formatCurrency(brokerageWithdrawalTaxes.annual.taxes);
+        document.getElementById('brokerageAnnualNet').textContent = FinancialCalculator.formatCurrency(brokerageWithdrawalTaxes.annual.net);
+        document.getElementById('brokerageAnnualTaxRate').textContent = FinancialCalculator.formatPercent(brokerageWithdrawalTaxes.annual.taxRate);
     }
 
     updateContributionLimitViz(grossSalary, contributionPercent) {
