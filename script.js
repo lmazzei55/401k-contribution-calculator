@@ -115,23 +115,32 @@ class FinancialCalculator {
             contribution: contributionAmount,
             employerContribution,
             total401KContribution,
+            trad401kContribution,
+            roth401kContribution,
+            rothIRAContribution,
             additionalBrokerage,
-            totalFutureValue: totalFutureValue + futureValueAdditionalBrokerage,
+            totalFutureValue: futureValueEmployee + futureValueEmployer + futureValueAdditionalBrokerage,
             taxableIncome,
             taxes,
             takeHomePay,
-            futureValue401K: totalFutureValue, // Combined for withdrawal analysis
-            futureValue401kOnly: futureValueEmployee, // Distinguishing Roth vs Traditional parts may be needed later
+            futureValueTrad401k,
+            futureValueRoth401k,
             futureValueEmployerMatch: futureValueEmployer,
+            futureValueRothIRA,
             futureValueAdditionalBrokerage,
             grossSalary
         };
     }
 
-    static calculateNo401KScenario(grossSalary, contributionPercent, investmentReturn, years, targetTakeHome = null) {
+    static calculateNo401KScenario(grossSalary, contributionPercent, investmentReturn, years, targetTakeHome = null, rothIRA = 0) {
         const taxes = TaxCalculator.calculateTotalTaxes(grossSalary);
-        const takeHomePay = grossSalary - taxes.total;
-        
+        let takeHomePay = grossSalary - taxes.total;
+
+        // Roth IRA is a post-tax contribution
+        const rothIRAContribution = Math.min(rothIRA, 7000);
+        takeHomePay -= rothIRAContribution;
+        const futureValueRothIRA = this.calculateFutureValue(rothIRAContribution, investmentReturn, years);
+
         // Calculate brokerage investment
         let brokerageInvestment = 0;
         if (targetTakeHome) {
@@ -152,7 +161,7 @@ class FinancialCalculator {
             taxes,
             takeHomePay,
             brokerageInvestment,
-            futureValueBrokerage,
+            futureValueBrokerage: futureValueBrokerage + futureValueRothIRA, // Combined post-tax investments
             grossSalary
         };
     }
@@ -182,15 +191,13 @@ class FinancialCalculator {
         return `${percent.toFixed(1)}%`;
     }
 
-    static calculateCombinedWithdrawalTaxes(futureValueEmployee, futureValueEmployer, futureValueBrokerage, retirementIncome, investmentReturn = 7, retirementYears = 20, accountType = 'traditional') {
+    static calculateCombinedWithdrawalTaxes(futureValueTrad, futureValueRoth, futureValueEmployer, futureValueRothIRA, futureValueBrokerage, retirementIncome, investmentReturn = 7, retirementYears = 20) {
         const results = {};
-        const totalFutureValue = futureValueEmployee + futureValueEmployer + futureValueBrokerage;
+        const totalFutureValue = futureValueTrad + futureValueRoth + futureValueEmployer + futureValueRothIRA + futureValueBrokerage;
 
         // Lump Sum Withdrawal
         let lumpSumIncome = retirementIncome;
-        if (accountType === 'traditional') {
-            lumpSumIncome += futureValueEmployee; // Employee contributions are pre-tax
-        }
+        lumpSumIncome += futureValueTrad; // Employee traditional contributions are pre-tax
         lumpSumIncome += futureValueEmployer; // Employer match is always pre-tax
 
         const incomeTaxes = TaxCalculator.calculateTotalTaxes(lumpSumIncome);
@@ -210,18 +217,20 @@ class FinancialCalculator {
         const annualReturn = investmentReturn / 100;
         const totalAnnualWithdrawal = this.calculateAnnualWithdrawal(totalFutureValue, annualReturn, retirementYears);
         
-        const proportionEmployee = totalFutureValue > 0 ? futureValueEmployee / totalFutureValue : 0;
+        const proportionTrad = totalFutureValue > 0 ? futureValueTrad / totalFutureValue : 0;
+        const proportionRoth = totalFutureValue > 0 ? futureValueRoth / totalFutureValue : 0;
         const proportionEmployer = totalFutureValue > 0 ? futureValueEmployer / totalFutureValue : 0;
+        const proportionRothIRA = totalFutureValue > 0 ? futureValueRothIRA / totalFutureValue : 0;
         const proportionBrokerage = totalFutureValue > 0 ? futureValueBrokerage / totalFutureValue : 0;
 
-        const annualFromEmployee = totalAnnualWithdrawal * proportionEmployee;
+        const annualFromTrad = totalAnnualWithdrawal * proportionTrad;
+        const annualFromRoth = totalAnnualWithdrawal * proportionRoth;
         const annualFromEmployer = totalAnnualWithdrawal * proportionEmployer;
+        const annualFromRothIRA = totalAnnualWithdrawal * proportionRothIRA;
         const annualFromBrokerage = totalAnnualWithdrawal * proportionBrokerage;
 
         let annualTaxableIncome = retirementIncome;
-        if (accountType === 'traditional') {
-            annualTaxableIncome += annualFromEmployee;
-        }
+        annualTaxableIncome += annualFromTrad;
         annualTaxableIncome += annualFromEmployer;
         
         const annualIncomeTaxes = TaxCalculator.calculateTotalTaxes(annualTaxableIncome);
@@ -579,7 +588,8 @@ class App {
             inputs.contributionPercent,
             inputs.investmentReturn,
             inputs.years,
-            targetAnnualTakeHome
+            targetAnnualTakeHome,
+            inputs.rothIRA // Pass rothIRA contribution
         );
 
         // Calculate benefits
@@ -589,12 +599,14 @@ class App {
 
         // Calculate withdrawal taxes
         const withdrawalTaxes = FinancialCalculator.calculateCombinedWithdrawalTaxes(
-            with401K.futureValue401K,
+            with401K.futureValueTrad401k,
+            with401K.futureValueRoth401k,
+            with401K.futureValueEmployerMatch,
+            with401K.futureValueRothIRA,
             with401K.futureValueAdditionalBrokerage,
             inputs.retirementIncome, 
             inputs.investmentReturn,
-            inputs.retirementYears,
-            inputs.accountType
+            inputs.retirementYears
         );
 
         // Calculate brokerage withdrawal taxes
@@ -671,20 +683,26 @@ class App {
         document.getElementById('no401k_totalInvestment').textContent = FinancialCalculator.formatCurrency(no401K.brokerageInvestment);
         document.getElementById('futureValueBrokerage').textContent = FinancialCalculator.formatCurrency(no401K.futureValueBrokerage);
         document.getElementById('no401k_totalFutureValue').textContent = FinancialCalculator.formatCurrency(no401K.futureValueBrokerage);
-        document.getElementById('no401k_years').textContent = salaryFrequency;
+        document.getElementById('no401k_years').textContent = inputs.years;
         
         // --- With 401K Scenario ---
         document.getElementById('with401k_grossSalary').textContent = FinancialCalculator.formatCurrency(with401K.grossSalary);
-        document.getElementById('with401k_contribution').textContent = FinancialCalculator.formatCurrency(with401K.contribution);
+        document.getElementById('with401k_tradContribution').textContent = FinancialCalculator.formatCurrency(with401K.trad401kContribution);
         document.getElementById('with401k_taxableIncome').textContent = FinancialCalculator.formatCurrency(with401K.taxableIncome);
         document.getElementById('with401k_taxesPaid').textContent = FinancialCalculator.formatCurrency(with401K.taxes.total);
+        document.getElementById('with401k_afterTaxIncome').textContent = FinancialCalculator.formatCurrency(with401K.taxableIncome - with401K.taxes.total);
+        document.getElementById('with401k_rothContribution').textContent = FinancialCalculator.formatCurrency(with401K.roth401kContribution);
+        document.getElementById('with401k_rothIRAContribution').textContent = FinancialCalculator.formatCurrency(with401K.rothIRAContribution);
         document.getElementById('with401k_netIncome').textContent = FinancialCalculator.formatCurrency(with401K.takeHomePay);
         document.getElementById('with401k_livingExpenses').textContent = targetAnnualTakeHome ? FinancialCalculator.formatCurrency(targetAnnualTakeHome) : '-';
         document.getElementById('with401k_totalInvestment').textContent = FinancialCalculator.formatCurrency(with401K.additionalBrokerage);
-        document.getElementById('futureValue401kOnly').textContent = FinancialCalculator.formatCurrency(with401K.futureValue401kOnly);
+        
+        document.getElementById('futureValueTrad401k').textContent = FinancialCalculator.formatCurrency(with401K.futureValueTrad401k);
+        document.getElementById('futureValueRoth401k').textContent = FinancialCalculator.formatCurrency(with401K.futureValueRoth401k);
+        document.getElementById('futureValueRothIRA').textContent = FinancialCalculator.formatCurrency(with401K.futureValueRothIRA);
         document.getElementById('futureValueBrokerageWith401k').textContent = FinancialCalculator.formatCurrency(with401K.futureValueAdditionalBrokerage);
         document.getElementById('futureValue401k').textContent = FinancialCalculator.formatCurrency(with401K.totalFutureValue);
-        document.getElementById('with401k_years').textContent = salaryFrequency;
+        document.getElementById('with401k_years').textContent = inputs.years;
 
         // Benefits
         document.getElementById('taxSavings').textContent = FinancialCalculator.formatCurrency(taxSavings);
@@ -812,13 +830,14 @@ class App {
             const traditionalPercent = FinancialCalculator.findMaxContributionForTarget(inputs.grossSalary, targetAnnualTakeHome, inputs.employerMatch, 'traditional');
             const traditionalScenario = FinancialCalculator.calculate401KScenario(inputs.grossSalary, traditionalPercent, inputs.employerMatch, inputs.investmentReturn, inputs.years, targetAnnualTakeHome, 'traditional');
             const traditionalWithdrawal = FinancialCalculator.calculateCombinedWithdrawalTaxes(
-                traditionalScenario.futureValue401kOnly,
+                traditionalScenario.futureValueTrad401k,
+                traditionalScenario.futureValueRoth401k,
                 traditionalScenario.futureValueEmployerMatch,
+                traditionalScenario.futureValueRothIRA,
                 traditionalScenario.futureValueAdditionalBrokerage,
                 inputs.retirementIncome,
                 inputs.investmentReturn,
-                inputs.retirementYears,
-                'traditional'
+                inputs.retirementYears
             );
             const traditionalNetWorth = traditionalWithdrawal.lumpSum.net;
 
@@ -826,13 +845,14 @@ class App {
             const rothPercent = FinancialCalculator.findMaxContributionForTarget(inputs.grossSalary, targetAnnualTakeHome, inputs.employerMatch, 'roth');
             const rothScenario = FinancialCalculator.calculate401KScenario(inputs.grossSalary, rothPercent, inputs.employerMatch, inputs.investmentReturn, inputs.years, targetAnnualTakeHome, 'roth');
             const rothWithdrawal = FinancialCalculator.calculateCombinedWithdrawalTaxes(
-                rothScenario.futureValue401kOnly,
+                rothScenario.futureValueTrad401k,
+                rothScenario.futureValueRoth401k,
                 rothScenario.futureValueEmployerMatch,
+                rothScenario.futureValueRothIRA,
                 rothScenario.futureValueAdditionalBrokerage,
                 inputs.retirementIncome,
                 inputs.investmentReturn,
-                inputs.retirementYears,
-                'roth'
+                inputs.retirementYears
             );
             const rothNetWorth = rothWithdrawal.lumpSum.net;
 
@@ -878,10 +898,12 @@ class App {
         document.getElementById('salaryFrequencyDisplay').textContent = frequencyLabels[inputs.salaryFrequency] || inputs.salaryFrequency;
 
         // Update investment breakdown
-        document.getElementById('total401kInvestment').textContent = FinancialCalculator.formatCurrency(with401K.total401KContribution);
+        document.getElementById('totalTrad401kInvestment').textContent = FinancialCalculator.formatCurrency(with401K.trad401kContribution);
+        document.getElementById('totalRoth401kInvestment').textContent = FinancialCalculator.formatCurrency(with401K.roth401kContribution);
+        document.getElementById('totalRothIRAInvestment').textContent = FinancialCalculator.formatCurrency(with401K.rothIRAContribution);
         document.getElementById('totalAdditionalBrokerage').textContent = FinancialCalculator.formatCurrency(with401K.additionalBrokerage || 0);
         
-        const totalInvestment = with401K.total401KContribution + (with401K.additionalBrokerage || 0);
+        const totalInvestment = with401K.trad401kContribution + with401K.roth401kContribution + with401K.rothIRAContribution + (with401K.additionalBrokerage || 0);
         document.getElementById('totalAnnualInvestment').textContent = FinancialCalculator.formatCurrency(totalInvestment);
     }
 }

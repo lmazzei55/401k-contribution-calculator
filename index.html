@@ -41,14 +41,7 @@
                 <div class="input-col">
                     <h3><i class="fas fa-piggy-bank"></i> Investment Strategy</h3>
                     <div class="input-group">
-                        <label for="accountType">401K Account Type</label>
-                        <select id="accountType">
-                            <option value="traditional" selected>Traditional 401K</option>
-                            <option value="roth">Roth 401K</option>
-                        </select>
-                    </div>
-                    <div class="input-group">
-                        <label for="contributionPercent">401K Contribution (%)</label>
+                        <label for="contributionPercent">Total 401K Contribution (%)</label>
                         <input type="number" id="contributionPercent" value="20.6" min="0" max="100" step="0.1">
                         <div class="contribution-limit-viz" id="contributionLimitViz" style="display: none;">
                             <div class="limit-bar">
@@ -56,6 +49,16 @@
                                 <div class="limit-text" id="limitText"></div>
                             </div>
                         </div>
+                    </div>
+                    <div class="input-group">
+                        <label for="roth401kMax">Max Roth 401K Contribution ($)</label>
+                        <input type="number" id="roth401kMax" value="10000" min="0" step="500">
+                        <small class="help-text">Your personal or plan limit for Roth 401K.</small>
+                    </div>
+                     <div class="input-group">
+                        <label for="rothIRAContribution">Roth IRA Contribution ($)</label>
+                        <input type="number" id="rothIRAContribution" value="7000" min="0" step="100">
+                        <small class="help-text">Annual contribution. Max is $7,000 for 2024.</small>
                     </div>
                     <div class="input-group">
                         <label for="employerMatch">Employer Match (%)</label>
@@ -101,7 +104,7 @@
             </div>
 
             <div class="optimizer-section">
-                <button id="findBestStrategyBtn" class="calculate-btn primary"><i class="fas fa-brain"></i> Find Best Strategy</button>
+                <button id="findBestStrategyBtn" class="calculate-btn primary"><i class="fas fa-brain"></i> Find Optimal Mix</button>
                 <small id="optimizerMessage" class="help-text"></small>
             </div>
             
@@ -123,7 +126,9 @@
                     <div class="card">
                         <h3>Investment Breakdown (With 401K)</h3>
                         <div class="card-content">
-                            <p><strong>Annual 401K Investment:</strong> <span id="total401kInvestment">$0</span></p>
+                            <p><strong>Annual Trad 401K Inv:</strong> <span id="totalTrad401kInvestment">$0</span></p>
+                            <p><strong>Annual Roth 401K Inv:</strong> <span id="totalRoth401kInvestment">$0</span></p>
+                            <p><strong>Annual Roth IRA Inv:</strong> <span id="totalRothIRAInvestment">$0</span></p>
                             <p><strong>Annual Add'l Brokerage:</strong> <span id="totalAdditionalBrokerage">$0</span></p>
                             <p><strong>Total Annual Investment:</strong> <span id="totalAnnualInvestment">$0</span></p>
                         </div>
@@ -185,10 +190,13 @@
                         <h3>Annual Financial Flow</h3>
                         <div class="card-content">
                             <div class="waterfall-row"><span>Gross Annual Salary</span><span id="with401k_grossSalary">$0</span></div>
-                            <div class="waterfall-row deduction"><span>- 401K Contribution</span><span id="with401k_contribution">$0</span></div>
+                            <div class="waterfall-row deduction"><span>- Trad 401K Contribution</span><span id="with401k_tradContribution">$0</span></div>
                             <div class="waterfall-row total"><span>= Taxable Income</span><span id="with401k_taxableIncome">$0</span></div>
                             <div class="waterfall-row deduction"><span>- Taxes Paid</span><span id="with401k_taxesPaid">$0</span></div>
-                            <div class="waterfall-row total"><span>= Net Income</span><span id="with401k_netIncome">$0</span></div>
+                            <div class="waterfall-row total"><span>= After-Tax Income</span><span id="with401k_afterTaxIncome">$0</span></div>
+                            <div class="waterfall-row deduction"><span>- Roth 401K Contribution</span><span id="with401k_rothContribution">$0</span></div>
+                            <div class="waterfall-row deduction"><span>- Roth IRA Contribution</span><span id="with401k_rothIRAContribution">$0</span></div>
+                            <div class="waterfall-row total"><span>= Take-home for Living Exp.</span><span id="with401k_netIncome">$0</span></div>
                             <div class="waterfall-row deduction"><span>- Living Expenses (Target)</span><span id="with401k_livingExpenses">$0</span></div>
                             <div class="waterfall-row total final"><span>= Annual Add'l Brokerage Inv.</span><span id="with401k_totalInvestment">$0</span></div>
                         </div>
@@ -196,7 +204,9 @@
                     <div class="card">
                         <h3>Future Value <span class="header-note">(after <span id="with401k_years"></span> years)</span></h3>
                         <div class="card-content">
-                            <p><strong>401K Future Value:</strong> <span id="futureValue401kOnly">$0</span></p>
+                            <p><strong>Trad 401K Future Value:</strong> <span id="futureValueTrad401k">$0</span></p>
+                            <p><strong>Roth 401K Future Value:</strong> <span id="futureValueRoth401k">$0</span></p>
+                            <p><strong>Roth IRA Future Value:</strong> <span id="futureValueRothIRA">$0</span></p>
                             <p><strong>Brokerage Future Value:</strong> <span id="futureValueBrokerageWith401k">$0</span></p>
                             <p><strong>Total Future Value:</strong> <span id="futureValue401k">$0</span></p>
                         </div>
