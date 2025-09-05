@@ -78,7 +78,7 @@ class TaxCalculator {
 }
 
 class FinancialCalculator {
-    static calculate401KScenario(grossSalary, contributionPercent, employerMatch, investmentReturn, years) {
+    static calculate401KScenario(grossSalary, contributionPercent, employerMatch, investmentReturn, years, targetTakeHome = null) {
         // Calculate contribution amount, respecting 401K limits
         const maxContribution = Math.min(grossSalary * (contributionPercent / 100), EMPLOYEE_401K_LIMIT);
         const employerContribution = Math.min(grossSalary * (employerMatch / 100), EMPLOYEE_401K_LIMIT * 0.5); // Typical employer match limit
@@ -89,21 +89,33 @@ class FinancialCalculator {
         const taxes = TaxCalculator.calculateTotalTaxes(taxableIncome);
         const takeHomePay = taxableIncome - taxes.total;
         
+        // If target is set, invest excess in additional brokerage
+        let additionalBrokerage = 0;
+        if (targetTakeHome && takeHomePay > targetTakeHome) {
+            additionalBrokerage = takeHomePay - targetTakeHome;
+        }
+        
         // Future value of 401K (tax-deferred)
         const futureValue401K = this.calculateFutureValue(total401KContribution, investmentReturn, years);
+        
+        // Future value of additional brokerage investment
+        const futureValueAdditionalBrokerage = this.calculateFutureValue(additionalBrokerage, investmentReturn, years);
         
         return {
             contribution: maxContribution,
             employerContribution,
             total401KContribution,
+            additionalBrokerage,
+            totalFutureValue: futureValue401K + futureValueAdditionalBrokerage,
             taxableIncome,
             taxes,
             takeHomePay,
-            futureValue401K
+            futureValue401K,
+            futureValueAdditionalBrokerage
         };
     }
 
-    static calculateNo401KScenario(grossSalary, contributionPercent, investmentReturn, years) {
+    static calculateNo401KScenario(grossSalary, contributionPercent, investmentReturn, years, targetTakeHome = null) {
         const taxes = TaxCalculator.calculateTotalTaxes(grossSalary);
         const takeHomePay = grossSalary - taxes.total;
         
@@ -111,14 +123,22 @@ class FinancialCalculator {
         const potentialContribution = Math.min(grossSalary * (contributionPercent / 100), EMPLOYEE_401K_LIMIT);
         const afterTaxContribution = potentialContribution * (1 - (taxes.federal + taxes.state) / grossSalary);
         
+        // If target is set, invest the excess beyond target
+        let totalInvestment = afterTaxContribution;
+        if (targetTakeHome && takeHomePay > targetTakeHome) {
+            const excessTakeHome = takeHomePay - targetTakeHome;
+            totalInvestment += excessTakeHome;
+        }
+        
         // Future value of brokerage investment (after-tax)
-        const futureValueBrokerage = this.calculateFutureValue(afterTaxContribution, investmentReturn, years);
+        const futureValueBrokerage = this.calculateFutureValue(totalInvestment, investmentReturn, years);
         
         return {
             taxes,
             takeHomePay,
             potentialContribution,
             afterTaxContribution,
+            totalInvestment,
             futureValueBrokerage
         };
     }
@@ -206,6 +226,29 @@ class FinancialCalculator {
     static getPeriodTakeHome(annualTakeHome, frequency) {
         const periodsPerYear = SALARY_FREQUENCY[frequency];
         return annualTakeHome / periodsPerYear;
+    }
+
+    static findMaxContributionForTarget(grossSalary, targetAnnualTakeHome, employerMatch) {
+        // Binary search to find the maximum contribution % that still meets target
+        let low = 0;
+        let high = Math.min(100, (EMPLOYEE_401K_LIMIT / grossSalary) * 100);
+        let bestPercent = 0;
+        
+        for (let i = 0; i < 30; i++) {
+            const mid = (low + high) / 2;
+            const scenario = this.calculate401KScenario(grossSalary, mid, employerMatch, 7, 30, targetAnnualTakeHome);
+            
+            if (scenario.takeHomePay >= targetAnnualTakeHome - 1) {
+                // This contribution % still meets target
+                bestPercent = mid;
+                low = mid;
+            } else {
+                // This contribution % is too high
+                high = mid;
+            }
+        }
+        
+        return Math.round(bestPercent * 10) / 10;
     }
 }
 
@@ -440,25 +483,31 @@ class App {
             return;
         }
 
+        // Get target annual take-home if specified
+        const targetPerPay = parseFloat(document.getElementById('targetPerPay').value || '');
+        const targetAnnualTakeHome = targetPerPay ? targetPerPay * SALARY_FREQUENCY[inputs.salaryFrequency] : null;
+
         // Calculate scenarios
         const with401K = FinancialCalculator.calculate401KScenario(
             inputs.grossSalary,
             inputs.contributionPercent,
             inputs.employerMatch,
             inputs.investmentReturn,
-            inputs.years
+            inputs.years,
+            targetAnnualTakeHome
         );
 
         const no401K = FinancialCalculator.calculateNo401KScenario(
             inputs.grossSalary,
             inputs.contributionPercent,
             inputs.investmentReturn,
-            inputs.years
+            inputs.years,
+            targetAnnualTakeHome
         );
 
         // Calculate benefits
         const taxSavings = no401K.taxes.total - with401K.taxes.total;
-        const wealthDifference = with401K.futureValue401K - no401K.futureValueBrokerage;
+        const wealthDifference = with401K.totalFutureValue - no401K.futureValueBrokerage;
         const roi401K = (wealthDifference / (with401K.contribution * inputs.years)) * 100;
 
         // Calculate withdrawal taxes
@@ -472,6 +521,7 @@ class App {
         // Update UI
         this.updateResults(no401K, with401K, taxSavings, wealthDifference, roi401K, inputs.salaryFrequency, withdrawalTaxes);
         this.updateContributionLimitViz(inputs.grossSalary, inputs.contributionPercent);
+        this.updateMaxContributionInfo(inputs, targetAnnualTakeHome);
         
         // Create charts
         this.chartManager.createTakeHomeChart({
@@ -481,7 +531,7 @@ class App {
 
         this.chartManager.createWealthChart({
             no401k: { futureValue: no401K.futureValueBrokerage },
-            with401k: { futureValue: with401K.futureValue401K }
+            with401k: { futureValue: with401K.totalFutureValue }
         });
 
         this.chartManager.createTaxChart({
@@ -499,7 +549,7 @@ class App {
             FinancialCalculator.getPeriodTakeHome(no401K.takeHomePay, salaryFrequency)
         );
         document.getElementById('taxesNo401k').textContent = FinancialCalculator.formatCurrency(no401K.taxes.total);
-        document.getElementById('brokerageInvestment').textContent = FinancialCalculator.formatCurrency(no401K.afterTaxContribution);
+        document.getElementById('brokerageInvestment').textContent = FinancialCalculator.formatCurrency(no401K.totalInvestment || no401K.afterTaxContribution);
         document.getElementById('futureValueBrokerage').textContent = FinancialCalculator.formatCurrency(no401K.futureValueBrokerage);
 
         // With 401K
@@ -509,7 +559,7 @@ class App {
         );
         document.getElementById('taxesWith401k').textContent = FinancialCalculator.formatCurrency(with401K.taxes.total);
         document.getElementById('contribution401k').textContent = FinancialCalculator.formatCurrency(with401K.total401KContribution);
-        document.getElementById('futureValue401k').textContent = FinancialCalculator.formatCurrency(with401K.futureValue401K);
+        document.getElementById('futureValue401k').textContent = FinancialCalculator.formatCurrency(with401K.totalFutureValue);
 
         // Benefits
         document.getElementById('taxSavings').textContent = FinancialCalculator.formatCurrency(taxSavings);
@@ -578,55 +628,56 @@ class App {
             return;
         }
 
-        // Helper to compute per-period take home for a given contribution percent
-        const perPeriodTakeHomeFor = (percent) => {
-            const scenario = FinancialCalculator.calculate401KScenario(
-                inputs.grossSalary,
-                percent,
-                inputs.employerMatch,
-                inputs.investmentReturn,
-                inputs.years
-            );
-            return FinancialCalculator.getPeriodTakeHome(scenario.takeHomePay, inputs.salaryFrequency);
-        };
+        const targetAnnualTakeHome = targetPerPay * SALARY_FREQUENCY[inputs.salaryFrequency];
+        
+        // Find the maximum contribution % that still meets the target
+        const maxContributionPercent = FinancialCalculator.findMaxContributionForTarget(
+            inputs.grossSalary, 
+            targetAnnualTakeHome, 
+            inputs.employerMatch
+        );
 
-        const perPeriodAt0 = perPeriodTakeHomeFor(0);
-        const maxPercentByLimit = Math.min(100, (EMPLOYEE_401K_LIMIT / Math.max(inputs.grossSalary, 1)) * 100);
-        const perPeriodAtMax = perPeriodTakeHomeFor(maxPercentByLimit);
-
-        // If target above what's possible with 0% contribution
-        if (targetPerPay >= perPeriodAt0 - 1) {
+        // Check if target is achievable
+        const scenarioAt0 = FinancialCalculator.calculate401KScenario(
+            inputs.grossSalary, 0, inputs.employerMatch, inputs.investmentReturn, inputs.years, targetAnnualTakeHome
+        );
+        
+        if (targetPerPay >= FinancialCalculator.getPeriodTakeHome(scenarioAt0.takeHomePay, inputs.salaryFrequency) - 1) {
             document.getElementById('contributionPercent').value = 0;
             this.calculate();
             messageEl.textContent = 'Target exceeds 0% contribution take-home; set to 0%.';
             return;
         }
 
-        // If target below what's possible at max contribution
-        if (targetPerPay <= perPeriodAtMax + 1) {
-            document.getElementById('contributionPercent').value = Math.round(maxPercentByLimit * 10) / 10;
+        if (maxContributionPercent <= 0.1) {
+            document.getElementById('contributionPercent').value = 0;
             this.calculate();
-            messageEl.textContent = 'Target requires hitting the annual $23,000 cap; set to max.';
+            messageEl.textContent = 'Target requires 0% contribution to meet take-home goal.';
             return;
         }
 
-        // Binary search for contribution percent
-        let low = 0;
-        let high = maxPercentByLimit;
-        for (let i = 0; i < 30; i++) {
-            const mid = (low + high) / 2;
-            const per = perPeriodTakeHomeFor(mid);
-            if (per > targetPerPay) {
-                // Need to contribute more to reduce take-home
-                low = mid;
-            } else {
-                high = mid;
-            }
-        }
-        const solved = Math.min(Math.max(high, 0), maxPercentByLimit);
-        document.getElementById('contributionPercent').value = Math.round(solved * 10) / 10;
+        // Set to the maximum contribution that still meets target
+        document.getElementById('contributionPercent').value = maxContributionPercent;
         this.calculate();
-        messageEl.textContent = 'Solved contribution set based on target.';
+        messageEl.textContent = `Max contribution ${maxContributionPercent}% while meeting target.`;
+    }
+
+    updateMaxContributionInfo(inputs, targetAnnualTakeHome) {
+        const maxInfoEl = document.getElementById('maxContributionInfo');
+        
+        if (!targetAnnualTakeHome) {
+            maxInfoEl.style.display = 'none';
+            return;
+        }
+
+        const maxContributionPercent = FinancialCalculator.findMaxContributionForTarget(
+            inputs.grossSalary, 
+            targetAnnualTakeHome, 
+            inputs.employerMatch
+        );
+
+        maxInfoEl.style.display = 'block';
+        maxInfoEl.textContent = `Max contribution: ${maxContributionPercent}% while meeting target take-home`;
     }
 }
 
