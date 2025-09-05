@@ -673,6 +673,7 @@ class App {
     }
 
     updateResults(no401K, with401K, taxSavings, wealthDifference, roi401K, salaryFrequency, withdrawalTaxes, brokerageWithdrawalTaxes) {
+        const inputs = this.getInputValues();
         const targetPerPay = parseFloat(document.getElementById('targetPerPay').value || '');
         const targetAnnualTakeHome = targetPerPay ? targetPerPay * SALARY_FREQUENCY[salaryFrequency] : null;
 
