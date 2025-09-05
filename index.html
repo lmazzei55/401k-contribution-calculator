@@ -41,6 +41,13 @@
                 <div class="input-col">
                     <h3><i class="fas fa-piggy-bank"></i> Investment Strategy</h3>
                     <div class="input-group">
+                        <label for="accountType">401K Account Type</label>
+                        <select id="accountType">
+                            <option value="traditional" selected>Traditional 401K</option>
+                            <option value="roth">Roth 401K</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
                         <label for="contributionPercent">401K Contribution (%)</label>
                         <input type="number" id="contributionPercent" value="20.6" min="0" max="100" step="0.1">
                         <div class="contribution-limit-viz" id="contributionLimitViz" style="display: none;">
@@ -92,6 +99,11 @@
                     </div>
                 </div>
             </div>
+
+            <div class="optimizer-section">
+                <button id="findBestStrategyBtn" class="calculate-btn primary"><i class="fas fa-brain"></i> Find Best Strategy</button>
+                <small id="optimizerMessage" class="help-text"></small>
+            </div>
             
             <button id="calculateBtn" class="calculate-btn primary">Calculate Financial Impact</button>
         </div>
@@ -136,7 +148,7 @@
                         </div>
                     </div>
                     <div class="card">
-                        <h3>Future Value <span class="header-note">(after 30 years)</span></h3>
+                        <h3>Future Value <span class="header-note">(after <span id="no401k_years"></span> years)</span></h3>
                         <div class="card-content">
                             <p><strong>401K Future Value:</strong> <span>-</span></p>
                             <p><strong>Brokerage Future Value:</strong> <span id="futureValueBrokerage">$0</span></p>
@@ -182,7 +194,7 @@
                         </div>
                     </div>
                     <div class="card">
-                        <h3>Future Value <span class="header-note">(after 30 years)</span></h3>
+                        <h3>Future Value <span class="header-note">(after <span id="with401k_years"></span> years)</span></h3>
                         <div class="card-content">
                             <p><strong>401K Future Value:</strong> <span id="futureValue401kOnly">$0</span></p>
                             <p><strong>Brokerage Future Value:</strong> <span id="futureValueBrokerageWith401k">$0</span></p>

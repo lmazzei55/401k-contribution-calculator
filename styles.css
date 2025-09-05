@@ -137,6 +137,19 @@ header p {
     align-items: flex-end;
 }
 
+.optimizer-section {
+    text-align: center;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 2px dashed #e1e5e9;
+}
+
+.optimizer-section .calculate-btn {
+    width: auto;
+    padding: 15px 30px;
+    margin: 0 auto 10px auto;
+}
+
 .input-group.button-group {
     display: flex;
     flex-direction: column;
