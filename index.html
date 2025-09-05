@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>401K Contribution Calculator</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -16,111 +17,86 @@
 
         <div class="input-section">
             <h2>Financial Information</h2>
-            <div class="input-grid">
-                <div class="input-group">
-                    <label for="grossSalary">Gross Annual Salary ($)</label>
-                    <input type="number" id="grossSalary" value="100000" min="0" step="1000">
-                </div>
-                <div class="input-group">
-                    <label for="contributionPercent">401K Contribution (%)</label>
-                    <input type="number" id="contributionPercent" value="10" min="0" max="100" step="0.5">
-                    <small class="help-text">Percentage of your salary (max $23,000 for 2024)</small>
-                    <div class="contribution-limit-viz" id="contributionLimitViz" style="display: none;">
-                        <div class="limit-bar">
-                            <div class="limit-fill" id="limitFill"></div>
-                            <div class="limit-text" id="limitText"></div>
-                        </div>
+            <div class="input-columns">
+                <!-- Column 1: Your Finances -->
+                <div class="input-col">
+                    <h3><i class="fas fa-wallet"></i> Your Finances</h3>
+                    <div class="input-group">
+                        <label for="grossSalary">Gross Annual Salary ($)</label>
+                        <input type="number" id="grossSalary" value="112000" min="0" step="1000">
+                    </div>
+                    <div class="input-group">
+                        <label for="salaryFrequency">Salary Frequency</label>
+                        <select id="salaryFrequency">
+                            <option value="weekly">Weekly</option>
+                            <option value="biweekly" selected>Bi-weekly (every 2 weeks)</option>
+                            <option value="semimonthly">Semi-monthly (twice per month)</option>
+                            <option value="monthly">Monthly</option>
+                            <option value="annually">Annually</option>
+                        </select>
                     </div>
                 </div>
-                <div class="input-group">
-                    <label for="employerMatch">Employer Match (%)</label>
-                    <input type="number" id="employerMatch" value="3" min="0" max="100" step="0.5">
+
+                <!-- Column 2: Investment Strategy -->
+                <div class="input-col">
+                    <h3><i class="fas fa-piggy-bank"></i> Investment Strategy</h3>
+                    <div class="input-group">
+                        <label for="contributionPercent">401K Contribution (%)</label>
+                        <input type="number" id="contributionPercent" value="20.6" min="0" max="100" step="0.1">
+                        <div class="contribution-limit-viz" id="contributionLimitViz" style="display: none;">
+                            <div class="limit-bar">
+                                <div class="limit-fill" id="limitFill"></div>
+                                <div class="limit-text" id="limitText"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label for="employerMatch">Employer Match (%)</label>
+                        <input type="number" id="employerMatch" value="3" min="0" max="100" step="0.5">
+                    </div>
+                    <div class="input-group">
+                        <label for="investmentReturn">Expected Annual Return (%)</label>
+                        <input type="number" id="investmentReturn" value="7" min="0" max="20" step="0.1">
+                    </div>
                 </div>
-                <div class="input-group">
-                    <label for="investmentReturn">Expected Annual Return (%)</label>
-                    <input type="number" id="investmentReturn" value="7" min="0" max="20" step="0.1">
-                </div>
-                <div class="input-group">
-                    <label for="years">Investment Timeline (years)</label>
-                    <input type="number" id="years" value="30" min="1" max="50" step="1">
-                </div>
-                <div class="input-group">
-                    <label for="salaryFrequency">Salary Frequency</label>
-                    <select id="salaryFrequency">
-                        <option value="weekly">Weekly</option>
-                        <option value="biweekly">Bi-weekly (every 2 weeks)</option>
-                        <option value="semimonthly" selected>Semi-monthly (twice per month)</option>
-                        <option value="monthly">Monthly</option>
-                        <option value="annually">Annually</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label for="withdrawalStrategy">401K Withdrawal Strategy</label>
-                    <select id="withdrawalStrategy">
-                        <option value="lumpsum">Lump Sum (all at once)</option>
-                        <option value="annual" selected>Annual Withdrawals</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label for="retirementIncome">Retirement Income (annual)</label>
-                    <input type="number" id="retirementIncome" value="0" min="0" step="1000">
-                    <small class="help-text">Other income during retirement (pension, Social Security, etc.)</small>
-                </div>
-                <div class="input-group">
-                    <label for="retirementYears">Retirement Withdrawal Period (years)</label>
-                    <input type="number" id="retirementYears" value="20" min="1" max="50" step="1">
-                    <small class="help-text">How many years to distribute withdrawals over</small>
-                </div>
-            </div>
-            <div class="input-grid" style="margin-top: 10px;">
-                <div class="input-group">
-                    <label for="targetPerPay">Target Take-home per Paycheck ($)</label>
-                    <input type="number" id="targetPerPay" value="" min="0" step="50" placeholder="e.g., 2500">
-                    <small class="help-text">Optional: enter desired per-paycheck net pay, then click Solve</small>
-                </div>
-                <div class="input-group">
-                    <label>&nbsp;</label>
-                    <button id="solveContributionBtn" class="calculate-btn">Solve Contribution %</button>
-                    <small id="solveMessage" class="help-text"></small>
-                    <small id="maxContributionInfo" class="help-text" style="display: none;"></small>
+
+                <!-- Column 3: Retirement Plan -->
+                <div class="input-col">
+                    <h3><i class="fas fa-umbrella-beach"></i> Retirement Plan</h3>
+                    <div class="input-group">
+                        <label for="years">Investment Timeline (years)</label>
+                        <input type="number" id="years" value="30" min="1" max="50" step="1">
+                    </div>
+                    <div class="input-group">
+                        <label for="retirementYears">Retirement Withdrawal Period (years)</label>
+                        <input type="number" id="retirementYears" value="20" min="1" max="50" step="1">
+                        <small class="help-text">How many years to distribute withdrawals over</small>
+                    </div>
+                    <div class="input-group">
+                        <label for="retirementIncome">Other Retirement Income (annual)</label>
+                        <input type="number" id="retirementIncome" value="0" min="0" step="1000">
+                    </div>
                 </div>
             </div>
-            <button id="calculateBtn" class="calculate-btn">Calculate Impact</button>
+
+            <div class="solver-section">
+                <h4><i class="fas fa-magic-wand-sparkles"></i> Or, Calculate Contribution by Goal</h4>
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label for="targetPerPay">Target Take-home per Paycheck ($)</label>
+                        <input type="number" id="targetPerPay" value="1750" min="0" step="50" placeholder="e.g., 2500">
+                    </div>
+                    <div class="input-group button-group">
+                        <button id="solveContributionBtn" class="calculate-btn secondary">Solve Contribution %</button>
+                        <small id="solveMessage" class="help-text"></small>
+                    </div>
+                </div>
+            </div>
+            
+            <button id="calculateBtn" class="calculate-btn primary">Calculate Financial Impact</button>
         </div>
 
         <div class="results-section" id="resultsSection" style="display: none;">
-            <div class="summary-cards">
-                <div class="card">
-                    <h3>Without 401K</h3>
-                    <div class="card-content">
-                        <p><strong>Annual Take-home:</strong> <span id="takehomeNo401k">$0</span></p>
-                        <p><strong>Period Take-home:</strong> <span id="periodTakehomeNo401k">$0</span></p>
-                        <p><strong>Taxes Paid:</strong> <span id="taxesNo401k">$0</span></p>
-                        <p><strong>Brokerage Investment:</strong> <span id="brokerageInvestment">$0</span></p>
-                        <p><strong>Future Value:</strong> <span id="futureValueBrokerage">$0</span></p>
-                    </div>
-                </div>
-                <div class="card">
-                    <h3>With 401K</h3>
-                    <div class="card-content">
-                        <p><strong>Annual Take-home:</strong> <span id="takehomeWith401k">$0</span></p>
-                        <p><strong>Period Take-home:</strong> <span id="periodTakehomeWith401k">$0</span></p>
-                        <p><strong>Taxes Paid:</strong> <span id="taxesWith401k">$0</span></p>
-                        <p><strong>401K Contribution:</strong> <span id="contribution401k">$0</span></p>
-                        <p><strong>Additional Brokerage:</strong> <span id="additionalBrokerage">$0</span></p>
-                        <p><strong>Future Value:</strong> <span id="futureValue401k">$0</span></p>
-                    </div>
-                </div>
-                <div class="card highlight">
-                    <h3>Net Benefit</h3>
-                    <div class="card-content">
-                        <p><strong>Tax Savings:</strong> <span id="taxSavings">$0</span></p>
-                        <p><strong>Wealth Difference:</strong> <span id="wealthDifference">$0</span></p>
-                        <p><strong>ROI on 401K:</strong> <span id="roi401k">0%</span></p>
-                    </div>
-                </div>
-            </div>
-
             <div class="target-info-section" id="targetInfoSection" style="display: none;">
                 <h2>Target Take-Home Analysis</h2>
                 <div class="target-cards">
@@ -133,60 +109,117 @@
                         </div>
                     </div>
                     <div class="card">
-                        <h3>Investment Breakdown</h3>
+                        <h3>Investment Breakdown (With 401K)</h3>
                         <div class="card-content">
-                            <p><strong>401K Investment:</strong> <span id="total401kInvestment">$0</span></p>
-                            <p><strong>Additional Brokerage:</strong> <span id="totalAdditionalBrokerage">$0</span></p>
+                            <p><strong>Annual 401K Investment:</strong> <span id="total401kInvestment">$0</span></p>
+                            <p><strong>Annual Add'l Brokerage:</strong> <span id="totalAdditionalBrokerage">$0</span></p>
                             <p><strong>Total Annual Investment:</strong> <span id="totalAnnualInvestment">$0</span></p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="withdrawal-section">
-                <h2>401K Withdrawal Tax Analysis</h2>
-                <div class="withdrawal-cards">
-                    <div class="card">
-                        <h3>Lump Sum Withdrawal</h3>
+            <div class="scenario-comparison">
+                <!-- Scenario 1: Without 401K -->
+                <div class="scenario-card">
+                    <h2>Without 401K</h2>
+                    <div class="card waterfall">
+                        <h3>Annual Financial Flow</h3>
                         <div class="card-content">
-                            <p><strong>Total Withdrawal:</strong> <span id="lumpSumTotal">$0</span></p>
-                            <p><strong>Taxes on Withdrawal:</strong> <span id="lumpSumTaxes">$0</span></p>
-                            <p><strong>Net After Taxes:</strong> <span id="lumpSumNet">$0</span></p>
-                            <p><strong>Effective Tax Rate:</strong> <span id="lumpSumTaxRate">0%</span></p>
+                            <div class="waterfall-row"><span>Gross Annual Salary</span><span id="no401k_grossSalary">$0</span></div>
+                            <div class="waterfall-row deduction"><span>- 401K Contribution</span><span>-</span></div>
+                            <div class="waterfall-row total"><span>= Taxable Income</span><span id="no401k_taxableIncome">$0</span></div>
+                            <div class="waterfall-row deduction"><span>- Taxes Paid</span><span id="no401k_taxesPaid">$0</span></div>
+                            <div class="waterfall-row total"><span>= Net Income</span><span id="no401k_netIncome">$0</span></div>
+                            <div class="waterfall-row deduction"><span>- Living Expenses (Target)</span><span id="no401k_livingExpenses">$0</span></div>
+                            <div class="waterfall-row total final"><span>= Annual Brokerage Investment</span><span id="no401k_totalInvestment">$0</span></div>
                         </div>
                     </div>
                     <div class="card">
-                        <h3>Annual Withdrawals</h3>
+                        <h3>Future Value <span class="header-note">(after 30 years)</span></h3>
                         <div class="card-content">
-                            <p><strong>Annual Withdrawal:</strong> <span id="annualWithdrawal">$0</span></p>
-                            <p><strong>Annual Taxes:</strong> <span id="annualTaxes">$0</span></p>
-                            <p><strong>Net Annual Income:</strong> <span id="annualNet">$0</span></p>
-                            <p><strong>Effective Tax Rate:</strong> <span id="annualTaxRate">0%</span></p>
+                            <p><strong>401K Future Value:</strong> <span>-</span></p>
+                            <p><strong>Brokerage Future Value:</strong> <span id="futureValueBrokerage">$0</span></p>
+                            <p><strong>Total Future Value:</strong> <span id="no401k_totalFutureValue">$0</span></p>
+                        </div>
+                    </div>
+                    <div class="withdrawal-section">
+                        <h4>Brokerage Withdrawal Analysis</h4>
+                        <div class="card">
+                            <h5>Lump Sum Withdrawal</h5>
+                            <div class="card-content">
+                                <p><strong>Total Withdrawal:</strong> <span id="brokerageLumpSumTotal">$0</span></p>
+                                <p><strong>Capital Gains Tax:</strong> <span id="brokerageLumpSumTaxes">$0</span></p>
+                                <p><strong>Net After Taxes:</strong> <span id="brokerageLumpSumNet">$0</span></p>
+                                <p><strong>Effective Tax Rate:</strong> <span id="brokerageLumpSumTaxRate">0%</span></p>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <h5>Annual Withdrawals</h5>
+                            <div class="card-content">
+                                <p><strong>Annual Withdrawal:</strong> <span id="brokerageAnnualWithdrawal">$0</span></p>
+                                <p><strong>Annual Capital Gains Tax:</strong> <span id="brokerageAnnualTaxes">$0</span></p>
+                                <p><strong>Net Annual Income:</strong> <span id="brokerageAnnualNet">$0</span></p>
+                                <p><strong>Effective Tax Rate:</strong> <span id="brokerageAnnualTaxRate">0%</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scenario 2: With 401K -->
+                <div class="scenario-card">
+                    <h2>With 401K</h2>
+                    <div class="card waterfall">
+                        <h3>Annual Financial Flow</h3>
+                        <div class="card-content">
+                            <div class="waterfall-row"><span>Gross Annual Salary</span><span id="with401k_grossSalary">$0</span></div>
+                            <div class="waterfall-row deduction"><span>- 401K Contribution</span><span id="with401k_contribution">$0</span></div>
+                            <div class="waterfall-row total"><span>= Taxable Income</span><span id="with401k_taxableIncome">$0</span></div>
+                            <div class="waterfall-row deduction"><span>- Taxes Paid</span><span id="with401k_taxesPaid">$0</span></div>
+                            <div class="waterfall-row total"><span>= Net Income</span><span id="with401k_netIncome">$0</span></div>
+                            <div class="waterfall-row deduction"><span>- Living Expenses (Target)</span><span id="with401k_livingExpenses">$0</span></div>
+                            <div class="waterfall-row total final"><span>= Annual Add'l Brokerage Inv.</span><span id="with401k_totalInvestment">$0</span></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Future Value <span class="header-note">(after 30 years)</span></h3>
+                        <div class="card-content">
+                            <p><strong>401K Future Value:</strong> <span id="futureValue401kOnly">$0</span></p>
+                            <p><strong>Brokerage Future Value:</strong> <span id="futureValueBrokerageWith401k">$0</span></p>
+                            <p><strong>Total Future Value:</strong> <span id="futureValue401k">$0</span></p>
+                        </div>
+                    </div>
+                    <div class="withdrawal-section">
+                        <h4>Combined Withdrawal Analysis</h4>
+                        <div class="card">
+                            <h5>Lump Sum Withdrawal</h5>
+                            <div class="card-content">
+                                <p><strong>Total Withdrawal:</strong> <span id="lumpSumTotal">$0</span></p>
+                                <p><strong>Taxes on Withdrawal:</strong> <span id="lumpSumTaxes">$0</span></p>
+                                <p><strong>Net After Taxes:</strong> <span id="lumpSumNet">$0</span></p>
+                                <p><strong>Effective Tax Rate:</strong> <span id="lumpSumTaxRate">0%</span></p>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <h5>Annual Withdrawals</h5>
+                            <div class="card-content">
+                                <p><strong>Annual Withdrawal:</strong> <span id="annualWithdrawal">$0</span></p>
+                                <p><strong>Annual Taxes:</strong> <span id="annualTaxes">$0</span></p>
+                                <p><strong>Net Annual Income:</strong> <span id="annualNet">$0</span></p>
+                                <p><strong>Effective Tax Rate:</strong> <span id="annualTaxRate">0%</span></p>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="withdrawal-section">
-                <h2>Brokerage Account Withdrawal Analysis</h2>
-                <div class="withdrawal-cards">
-                    <div class="card">
-                        <h3>Lump Sum Withdrawal</h3>
-                        <div class="card-content">
-                            <p><strong>Total Withdrawal:</strong> <span id="brokerageLumpSumTotal">$0</span></p>
-                            <p><strong>Capital Gains Tax:</strong> <span id="brokerageLumpSumTaxes">$0</span></p>
-                            <p><strong>Net After Taxes:</strong> <span id="brokerageLumpSumNet">$0</span></p>
-                            <p><strong>Effective Tax Rate:</strong> <span id="brokerageLumpSumTaxRate">0%</span></p>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <h3>Annual Withdrawals</h3>
-                        <div class="card-content">
-                            <p><strong>Annual Withdrawal:</strong> <span id="brokerageAnnualWithdrawal">$0</span></p>
-                            <p><strong>Annual Capital Gains Tax:</strong> <span id="brokerageAnnualTaxes">$0</span></p>
-                            <p><strong>Net Annual Income:</strong> <span id="brokerageAnnualNet">$0</span></p>
-                            <p><strong>Effective Tax Rate:</strong> <span id="brokerageAnnualTaxRate">0%</span></p>
-                        </div>
+            <div class="summary-cards">
+                <div class="card highlight">
+                    <h3>Net Benefit</h3>
+                    <div class="card-content">
+                        <p><strong>Tax Savings:</strong> <span id="taxSavings">$0</span></p>
+                        <p><strong>Wealth Difference:</strong> <span id="wealthDifference">$0</span></p>
+                        <p><strong>ROI on 401K:</strong> <span id="roi401k">0%</span></p>
                     </div>
                 </div>
             </div>

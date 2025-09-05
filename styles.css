@@ -97,6 +97,51 @@ header p {
     font-style: italic;
 }
 
+.input-columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 25px;
+    margin-bottom: 30px;
+}
+
+.input-col h3 {
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #f0f0f0;
+    color: #333;
+}
+
+.input-col h3 i {
+    margin-right: 10px;
+    color: #667eea;
+}
+
+.solver-section {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 2px dashed #e1e5e9;
+}
+
+.solver-section h4 {
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 1.3rem;
+    color: #333;
+}
+
+.solver-section .input-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+    align-items: flex-end;
+}
+
+.input-group.button-group {
+    display: flex;
+    flex-direction: column;
+}
+
 .contribution-limit-viz {
     margin-top: 10px;
 }
@@ -155,6 +200,19 @@ header p {
     max-width: 300px;
     margin: 0 auto;
     display: block;
+}
+
+.calculate-btn.primary {
+    padding: 15px 30px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-top: 20px;
+}
+
+.calculate-btn.secondary {
+    background: #555;
+    font-size: 1rem;
+    padding: 12px 20px;
 }
 
 .calculate-btn:hover {
@@ -243,6 +301,90 @@ header p {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 20px;
+}
+
+.scenario-comparison {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+.scenario-card {
+    background: #f8f9fa;
+    border-radius: 15px;
+    padding: 25px;
+    border-top: 5px solid #667eea;
+}
+
+.scenario-card h2 {
+    font-size: 1.8rem;
+    margin-bottom: 20px;
+    text-align: center;
+    color: #333;
+}
+
+.scenario-card .card {
+    background-color: #fff;
+    margin-bottom: 20px;
+    border-left-width: 4px;
+}
+
+.scenario-card .withdrawal-section h4 {
+    font-size: 1.3rem;
+    margin-bottom: 15px;
+    color: #444;
+}
+
+.scenario-card .withdrawal-section h5 {
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+    color: #555;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+}
+
+.card.waterfall .card-content {
+    padding-top: 15px;
+    padding-bottom: 15px;
+}
+
+.waterfall-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 0.95rem;
+}
+
+.waterfall-row:last-child {
+    border-bottom: none;
+}
+
+.waterfall-row span:last-child {
+    font-weight: 600;
+}
+
+.waterfall-row.deduction span:first-child {
+    padding-left: 15px;
+    color: #c0392b;
+}
+
+.waterfall-row.total {
+    font-weight: 600;
+}
+
+.waterfall-row.total.final {
+    color: #27ae60;
+    border-top: 2px solid #27ae60;
+    margin-top: 5px;
+    padding-top: 10px;
+}
+
+.header-note {
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: #666;
 }
 
 .charts-section {
