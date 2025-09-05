@@ -209,6 +209,8 @@ class FinancialCalculator {
         results.lumpSum = {
             total: totalFutureValue,
             taxes: totalLumpSumTaxes,
+            incomeTaxes: incomeTaxes.total,
+            capitalGainsTaxes: capitalGainsTaxes,
             net: totalFutureValue - totalLumpSumTaxes,
             taxRate: totalFutureValue > 0 ? (totalLumpSumTaxes / totalFutureValue) * 100 : 0
         };
@@ -242,6 +244,8 @@ class FinancialCalculator {
         results.annual = {
             withdrawal: totalAnnualWithdrawal,
             taxes: totalAnnualTaxes,
+            incomeTaxes: annualIncomeTaxes.total,
+            capitalGainsTaxes: annualCapitalGainsTaxes,
             net: totalAnnualWithdrawal - totalAnnualTaxes,
             taxRate: totalAnnualWithdrawal > 0 ? (totalAnnualTaxes / totalAnnualWithdrawal) * 100 : 0
         };
@@ -715,11 +719,15 @@ class App {
 
         // Withdrawal taxes
         document.getElementById('lumpSumTotal').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.lumpSum.total);
+        document.getElementById('lumpSumIncomeTaxes').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.lumpSum.incomeTaxes);
+        document.getElementById('lumpSumCapitalGainsTaxes').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.lumpSum.capitalGainsTaxes);
         document.getElementById('lumpSumTaxes').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.lumpSum.taxes);
         document.getElementById('lumpSumNet').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.lumpSum.net);
         document.getElementById('lumpSumTaxRate').textContent = FinancialCalculator.formatPercent(withdrawalTaxes.lumpSum.taxRate);
 
         document.getElementById('annualWithdrawal').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.annual.withdrawal);
+        document.getElementById('annualIncomeTaxes').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.annual.incomeTaxes);
+        document.getElementById('annualCapitalGainsTaxes').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.annual.capitalGainsTaxes);
         document.getElementById('annualTaxes').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.annual.taxes);
         document.getElementById('annualNet').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.annual.net);
         document.getElementById('annualTaxRate').textContent = FinancialCalculator.formatPercent(withdrawalTaxes.annual.taxRate);

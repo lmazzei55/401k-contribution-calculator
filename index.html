@@ -213,25 +213,28 @@
                         </div>
                     </div>
                     <div class="withdrawal-section">
-                        <h4>Combined Withdrawal Analysis</h4>
-                        <div class="card">
-                            <h5>Lump Sum Withdrawal</h5>
-                            <div class="card-content">
+                        <h4>401K & Brokerage Withdrawal Analysis</h4>
+                        <div class="card-content withdrawal-columns">
+                            <div class="withdrawal-col">
+                                <h4>Lump Sum Withdrawal</h4>
                                 <p><strong>Total Withdrawal:</strong> <span id="lumpSumTotal">$0</span></p>
-                                <p><strong>Taxes on Withdrawal:</strong> <span id="lumpSumTaxes">$0</span></p>
-                                <p><strong>Net After Taxes:</strong> <span id="lumpSumNet">$0</span></p>
+                                <p class="tax-detail"><strong>Income Tax (on Trad 401k):</strong> <span id="lumpSumIncomeTaxes">$0</span></p>
+                                <p class="tax-detail"><strong>Capital Gains (on Brokerage):</strong> <span id="lumpSumCapitalGainsTaxes">$0</span></p>
+                                <p><strong>Total Taxes Paid:</strong> <span id="lumpSumTaxes">$0</span></p>
+                                <p><strong>Net Withdrawal:</strong> <span id="lumpSumNet">$0</span></p>
                                 <p><strong>Effective Tax Rate:</strong> <span id="lumpSumTaxRate">0%</span></p>
                             </div>
-                        </div>
-                        <div class="card">
-                            <h5>Annual Withdrawals</h5>
-                            <div class="card-content">
+                            <div class="withdrawal-col">
+                                <h4>Annual Withdrawal</h4>
                                 <p><strong>Annual Withdrawal:</strong> <span id="annualWithdrawal">$0</span></p>
-                                <p><strong>Annual Taxes:</strong> <span id="annualTaxes">$0</span></p>
-                                <p><strong>Net Annual Income:</strong> <span id="annualNet">$0</span></p>
+                                <p class="tax-detail"><strong>Income Tax (on Trad 401k):</strong> <span id="annualIncomeTaxes">$0</span></p>
+                                <p class="tax-detail"><strong>Capital Gains (on Brokerage):</strong> <span id="annualCapitalGainsTaxes">$0</span></p>
+                                <p><strong>Total Annual Taxes:</strong> <span id="annualTaxes">$0</span></p>
+                                <p><strong>Net Annual Withdrawal:</strong> <span id="annualNet">$0</span></p>
                                 <p><strong>Effective Tax Rate:</strong> <span id="annualTaxRate">0%</span></p>
                             </div>
                         </div>
+                        <small class="help-text explanation">Roth 401K and Roth IRA withdrawals are entirely tax-free and are included in your Net Withdrawal.</small>
                     </div>
                 </div>
             </div>
