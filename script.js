@@ -512,7 +512,6 @@ class App {
             investmentReturn: parseFloat(document.getElementById('investmentReturn').value) || 0,
             years: parseInt(document.getElementById('years').value) || 0,
             salaryFrequency: document.getElementById('salaryFrequency').value,
-            withdrawalStrategy: document.getElementById('withdrawalStrategy').value,
             retirementIncome: parseFloat(document.getElementById('retirementIncome').value) || 0,
             retirementYears: parseInt(document.getElementById('retirementYears').value) || 20
         };
