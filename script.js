@@ -78,31 +78,31 @@ class TaxCalculator {
 }
 
 class FinancialCalculator {
-    static calculate401KScenario(grossSalary, contributionPercent, employerMatch, investmentReturn, years, targetTakeHome = null, accountType = 'traditional', roth401kMax = 0, rothIRA = 0) {
-        const contributionAmount = Math.min(grossSalary * (contributionPercent / 100), EMPLOYEE_401K_LIMIT);
-        const employerContribution = Math.min(grossSalary * (employerMatch / 100), EMPLOYEE_401K_LIMIT * 0.5); // Employer match is always pre-tax
+    static calculate401KScenario(grossSalary, contributionPercent, employerMatch, investmentReturn, years, targetTakeHome = null, accountType = 'traditional' /* Unused */, roth401kMax = 0, rothIRA = 0) {
+        const totalContributionAmount = Math.min(grossSalary * (contributionPercent / 100), EMPLOYEE_401K_LIMIT);
+        const employerContribution = Math.min(grossSalary * (employerMatch / 100), totalContributionAmount);
 
-        let taxableIncome = grossSalary;
-        let postTaxContribution = 0;
+        // Split total 401k contribution between Traditional and Roth
+        const roth401kContribution = Math.min(totalContributionAmount, roth401kMax);
+        const trad401kContribution = totalContributionAmount - roth401kContribution;
 
-        if (accountType === 'traditional') {
-            taxableIncome -= contributionAmount;
-        }
+        // Roth IRA is a separate, post-tax contribution
+        const rothIRAContribution = Math.min(rothIRA, 7000);
 
+        // Only traditional 401k contributions reduce taxable income
+        const taxableIncome = grossSalary - trad401kContribution;
         const taxes = TaxCalculator.calculateTotalTaxes(taxableIncome);
+        
+        // Calculate take-home pay
         let takeHomePay = taxableIncome - taxes.total;
+        takeHomePay -= roth401kContribution; // Roth 401k is post-tax
+        takeHomePay -= rothIRAContribution;  // Roth IRA is post-tax
 
-        if (accountType === 'roth') {
-            takeHomePay -= contributionAmount;
-            postTaxContribution = contributionAmount;
-        }
-
-        const total401KContribution = contributionAmount + employerContribution;
-
-        // Future value of contributions
-        const futureValueEmployee = this.calculateFutureValue(contributionAmount, investmentReturn, years);
+        // Future value calculations for each bucket
+        const futureValueTrad401k = this.calculateFutureValue(trad401kContribution, investmentReturn, years);
+        const futureValueRoth401k = this.calculateFutureValue(roth401kContribution, investmentReturn, years);
         const futureValueEmployer = this.calculateFutureValue(employerContribution, investmentReturn, years);
-        const totalFutureValue = futureValueEmployee + futureValueEmployer;
+        const futureValueRothIRA = this.calculateFutureValue(rothIRAContribution, investmentReturn, years);
 
         // Additional brokerage for excess take-home
         let additionalBrokerage = 0;
@@ -112,20 +112,21 @@ class FinancialCalculator {
         const futureValueAdditionalBrokerage = this.calculateFutureValue(additionalBrokerage, investmentReturn, years);
         
         return {
-            contribution: contributionAmount,
+            contribution: totalContributionAmount,
             employerContribution,
-            total401KContribution,
-            trad401kContribution: contributionAmount,
-            roth401kContribution: roth401kMax,
-            rothIRAContribution: rothIRA,
+            total401KContribution: totalContributionAmount + employerContribution,
+            trad401kContribution,
+            roth401kContribution,
+            rothIRAContribution,
             additionalBrokerage,
-            totalFutureValue: futureValueEmployee + futureValueEmployer + futureValueAdditionalBrokerage,
+            totalFutureValue: futureValueTrad401k + futureValueRoth401k + futureValueEmployer + futureValueRothIRA + futureValueAdditionalBrokerage,
             taxableIncome,
             taxes,
             takeHomePay,
-            futureValueTrad401k: futureValueEmployee,
-            futureValueRoth401k: this.calculateFutureValue(roth401kMax, investmentReturn, years),
-            futureValueRothIRA: this.calculateFutureValue(rothIRA, investmentReturn, years),
+            futureValueTrad401k,
+            futureValueRoth401k,
+            futureValueEmployerMatch: futureValueEmployer,
+            futureValueRothIRA,
             futureValueAdditionalBrokerage,
             grossSalary
         };
@@ -829,36 +830,29 @@ class App {
                 return;
             }
 
+            const maxTotalContribution = FinancialCalculator.findMaxContributionForTarget(inputs.grossSalary, targetAnnualTakeHome, inputs.employerMatch, inputs.rothIRA);
+
+            // --- Calculate base case (0 Roth 401K) to initialize bestMix ---
+            const baseScenario = FinancialCalculator.calculate401KScenario(
+                inputs.grossSalary, maxTotalContribution, inputs.employerMatch, inputs.investmentReturn, inputs.years, targetAnnualTakeHome, 'traditional', 0, inputs.rothIRA
+            );
+            const baseWithdrawal = FinancialCalculator.calculateCombinedWithdrawalTaxes(
+                baseScenario.futureValueTrad401k, baseScenario.futureValueRoth401k, baseScenario.futureValueEmployerMatch, baseScenario.futureValueRothIRA, baseScenario.futureValueAdditionalBrokerage, inputs.retirementIncome, inputs.investmentReturn, inputs.retirementYears
+            );
+
             let bestMix = {
                 roth401kAmount: 0,
-                netWorth: -Infinity
+                netWorth: baseWithdrawal.lumpSum.net,
+                contributionPercent: maxTotalContribution
             };
 
-            const maxTotalContribution = FinancialCalculator.findMaxContributionForTarget(inputs.grossSalary, targetAnnualTakeHome, inputs.employerMatch, inputs.rothIRA); // Find max possible %
-
-            // Iterate through possible Roth 401K allocations
-            for (let rothAmount = 0; rothAmount <= inputs.roth401kMax; rothAmount += 500) {
+            // --- Iterate through other possible Roth 401K allocations ---
+            for (let rothAmount = 500; rothAmount <= inputs.roth401kMax; rothAmount += 500) {
                  const scenario = FinancialCalculator.calculate401KScenario(
-                    inputs.grossSalary,
-                    maxTotalContribution,
-                    inputs.employerMatch,
-                    inputs.investmentReturn,
-                    inputs.years,
-                    targetAnnualTakeHome,
-                    'traditional', // Base calculation type
-                    rothAmount, // Test this roth amount
-                    inputs.rothIRA
+                    inputs.grossSalary, maxTotalContribution, inputs.employerMatch, inputs.investmentReturn, inputs.years, targetAnnualTakeHome, 'traditional', rothAmount, inputs.rothIRA
                 );
-
                 const withdrawal = FinancialCalculator.calculateCombinedWithdrawalTaxes(
-                    scenario.futureValueTrad401k,
-                    scenario.futureValueRoth401k,
-                    scenario.futureValueEmployerMatch,
-                    scenario.futureValueRothIRA,
-                    scenario.futureValueAdditionalBrokerage,
-                    inputs.retirementIncome,
-                    inputs.investmentReturn,
-                    inputs.retirementYears
+                    scenario.futureValueTrad401k, scenario.futureValueRoth401k, scenario.futureValueEmployerMatch, scenario.futureValueRothIRA, scenario.futureValueAdditionalBrokerage, inputs.retirementIncome, inputs.investmentReturn, inputs.retirementYears
                 );
                 
                 if (withdrawal.lumpSum.net > bestMix.netWorth) {
