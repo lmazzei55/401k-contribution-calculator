@@ -473,12 +473,13 @@ class App {
     }
 
     initializeEventListeners() {
-        document.getElementById('calculateBtn').addEventListener('click', () => {
+        document.getElementById('calculateBtn').addEventListener('click', (e) => {
+            e.preventDefault();
             this.calculate();
         });
 
-        // Auto-calculate on input change
-        const inputs = document.querySelectorAll('input');
+        // Auto-calculate on input change for primary fields
+        const inputs = document.querySelectorAll('#grossSalary, #contributionPercent, #employerMatch, #investmentReturn, #years, #retirementYears, #retirementIncome');
         inputs.forEach(input => {
             input.addEventListener('input', () => {
                 this.calculate();
@@ -496,7 +497,8 @@ class App {
         // Inverse solver handler
         const solveBtn = document.getElementById('solveContributionBtn');
         if (solveBtn) {
-            solveBtn.addEventListener('click', () => {
+            solveBtn.addEventListener('click', (e) => {
+                e.preventDefault();
                 this.solveContributionForTarget();
             });
         }
