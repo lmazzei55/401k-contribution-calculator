@@ -138,100 +138,126 @@
             </div>
 
             <div class="scenario-comparison">
-                <!-- Scenario 1: Without 401K -->
-                <div class="scenario-card">
-                    <h2>Without 401K</h2>
-                    <div class="card waterfall">
+                <div class="comparison-table">
+                    <h2>Scenario Comparison</h2>
+                    
+                    <!-- Annual Financial Flow Comparison -->
+                    <div class="card">
                         <h3>Annual Financial Flow</h3>
                         <div class="card-content">
-                            <div class="waterfall-row"><span>Gross Annual Salary</span><span id="no401k_grossSalary">$0</span></div>
-                            <div class="waterfall-row deduction"><span>- 401K Contribution</span><span>-</span></div>
-                            <div class="waterfall-row total"><span>= Taxable Income</span><span id="no401k_taxableIncome">$0</span></div>
-                            <div class="waterfall-row deduction"><span>- Taxes Paid</span><span id="no401k_taxesPaid">$0</span></div>
-                            <div class="waterfall-row total"><span>= Net Income</span><span id="no401k_netIncome">$0</span></div>
-                            <div class="waterfall-row deduction"><span>- Living Expenses (Target)</span><span id="no401k_livingExpenses">$0</span></div>
-                            <div class="waterfall-row total final"><span>= Annual Brokerage Investment</span><span id="no401k_totalInvestment">$0</span></div>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <h3>Future Value <span class="header-note">(after <span id="no401k_years"></span> years)</span></h3>
-                        <div class="card-content">
-                            <p><strong>401K Future Value:</strong> <span>-</span></p>
-                            <p><strong>Brokerage Future Value:</strong> <span id="futureValueBrokerage">$0</span></p>
-                            <p><strong>Total Future Value:</strong> <span id="no401k_totalFutureValue">$0</span></p>
-                        </div>
-                    </div>
-                    <div class="withdrawal-section">
-                        <h4>Brokerage Withdrawal Analysis</h4>
-                        <div class="card">
-                            <h5>Lump Sum Withdrawal</h5>
-                            <div class="card-content">
-                                <p><strong>Total Withdrawal:</strong> <span id="brokerageLumpSumTotal">$0</span></p>
-                                <p><strong>Capital Gains Tax:</strong> <span id="brokerageLumpSumTaxes">$0</span></p>
-                                <p><strong>Net After Taxes:</strong> <span id="brokerageLumpSumNet">$0</span></p>
-                                <p><strong>Effective Tax Rate:</strong> <span id="brokerageLumpSumTaxRate">0%</span></p>
+                            <div class="comparison-row">
+                                <span class="label">Gross Annual Salary</span>
+                                <span class="value" id="no401k_grossSalary">$0</span>
+                                <span class="value" id="with401k_grossSalary">$0</span>
+                            </div>
+                            <div class="comparison-row deduction">
+                                <span class="label">- Traditional 401K Contribution</span>
+                                <span class="value">-</span>
+                                <span class="value" id="with401k_tradContribution">$0</span>
+                            </div>
+                            <div class="comparison-row total">
+                                <span class="label">= Taxable Income</span>
+                                <span class="value" id="no401k_taxableIncome">$0</span>
+                                <span class="value" id="with401k_taxableIncome">$0</span>
+                            </div>
+                            <div class="comparison-row deduction">
+                                <span class="label">- Taxes Paid</span>
+                                <span class="value" id="no401k_taxesPaid">$0</span>
+                                <span class="value" id="with401k_taxesPaid">$0</span>
+                            </div>
+                            <div class="comparison-row total">
+                                <span class="label">= After-Tax Income</span>
+                                <span class="value" id="no401k_afterTaxIncome">$0</span>
+                                <span class="value" id="with401k_afterTaxIncome">$0</span>
+                            </div>
+                            <div class="comparison-row deduction">
+                                <span class="label">- Roth 401K Contribution</span>
+                                <span class="value">-</span>
+                                <span class="value" id="with401k_rothContribution">$0</span>
+                            </div>
+                            <div class="comparison-row deduction">
+                                <span class="label">- Roth IRA Contribution</span>
+                                <span class="value">-</span>
+                                <span class="value" id="with401k_rothIRAContribution">$0</span>
+                            </div>
+                            <div class="comparison-row total">
+                                <span class="label">= Take-home for Living Exp.</span>
+                                <span class="value" id="no401k_netIncome">$0</span>
+                                <span class="value" id="with401k_netIncome">$0</span>
+                            </div>
+                            <div class="comparison-row deduction">
+                                <span class="label">- Living Expenses (Target)</span>
+                                <span class="value" id="no401k_livingExpenses">$0</span>
+                                <span class="value" id="with401k_livingExpenses">$0</span>
+                            </div>
+                            <div class="comparison-row total final">
+                                <span class="label">= Annual Investment</span>
+                                <span class="value" id="no401k_totalInvestment">$0</span>
+                                <span class="value" id="with401k_totalInvestment">$0</span>
                             </div>
                         </div>
-                        <div class="card">
-                            <h5>Annual Withdrawals</h5>
-                            <div class="card-content">
-                                <p><strong>Annual Withdrawal:</strong> <span id="brokerageAnnualWithdrawal">$0</span></p>
-                                <p><strong>Annual Capital Gains Tax:</strong> <span id="brokerageAnnualTaxes">$0</span></p>
-                                <p><strong>Net Annual Income:</strong> <span id="brokerageAnnualNet">$0</span></p>
-                                <p><strong>Effective Tax Rate:</strong> <span id="brokerageAnnualTaxRate">0%</span></p>
-                            </div>
-                        </div>
                     </div>
-                </div>
 
-                <!-- Scenario 2: With 401K -->
-                <div class="scenario-card">
-                    <h2>With 401K</h2>
-                    <div class="card waterfall">
-                        <h3>Annual Financial Flow</h3>
-                        <div class="card-content">
-                            <div class="waterfall-row"><span>Gross Annual Salary</span><span id="with401k_grossSalary">$0</span></div>
-                            <div class="waterfall-row deduction"><span>- Trad 401K Contribution</span><span id="with401k_tradContribution">$0</span></div>
-                            <div class="waterfall-row total"><span>= Taxable Income</span><span id="with401k_taxableIncome">$0</span></div>
-                            <div class="waterfall-row deduction"><span>- Taxes Paid</span><span id="with401k_taxesPaid">$0</span></div>
-                            <div class="waterfall-row total"><span>= After-Tax Income</span><span id="with401k_afterTaxIncome">$0</span></div>
-                            <div class="waterfall-row deduction"><span>- Roth 401K Contribution</span><span id="with401k_rothContribution">$0</span></div>
-                            <div class="waterfall-row deduction"><span>- Roth IRA Contribution</span><span id="with401k_rothIRAContribution">$0</span></div>
-                            <div class="waterfall-row total"><span>= Take-home for Living Exp.</span><span id="with401k_netIncome">$0</span></div>
-                            <div class="waterfall-row deduction"><span>- Living Expenses (Target)</span><span id="with401k_livingExpenses">$0</span></div>
-                            <div class="waterfall-row total final"><span>= Annual Add'l Brokerage Inv.</span><span id="with401k_totalInvestment">$0</span></div>
-                        </div>
-                    </div>
+                    <!-- Future Value Comparison -->
                     <div class="card">
-                        <h3>Future Value <span class="header-note">(after <span id="with401k_years"></span> years)</span></h3>
+                        <h3>Future Value <span class="header-note">(after <span id="years_display"></span> years)</span></h3>
                         <div class="card-content">
-                            <p><strong>Trad 401K Future Value:</strong> <span id="futureValueTrad401k">$0</span></p>
-                            <p><strong>Roth 401K Future Value:</strong> <span id="futureValueRoth401k">$0</span></p>
-                            <p><strong>Roth IRA Future Value:</strong> <span id="futureValueRothIRA">$0</span></p>
-                            <p><strong>Brokerage Future Value:</strong> <span id="futureValueBrokerageWith401k">$0</span></p>
-                            <p><strong>Total Future Value:</strong> <span id="futureValue401k">$0</span></p>
+                            <div class="comparison-row">
+                                <span class="label">Traditional 401K Future Value</span>
+                                <span class="value">-</span>
+                                <span class="value" id="futureValueTrad401k">$0</span>
+                            </div>
+                            <div class="comparison-row">
+                                <span class="label">Roth 401K Future Value</span>
+                                <span class="value">-</span>
+                                <span class="value" id="futureValueRoth401k">$0</span>
+                            </div>
+                            <div class="comparison-row">
+                                <span class="label">Roth IRA Future Value</span>
+                                <span class="value">-</span>
+                                <span class="value" id="futureValueRothIRA">$0</span>
+                            </div>
+                            <div class="comparison-row">
+                                <span class="label">Brokerage Future Value</span>
+                                <span class="value" id="futureValueBrokerage">$0</span>
+                                <span class="value" id="futureValueBrokerageWith401k">$0</span>
+                            </div>
+                            <div class="comparison-row total final">
+                                <span class="label">Total Future Value</span>
+                                <span class="value" id="no401k_totalFutureValue">$0</span>
+                                <span class="value" id="futureValue401k">$0</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="withdrawal-section">
-                        <h4>401K & Brokerage Withdrawal Analysis</h4>
-                        <div class="card-content withdrawal-columns">
-                            <div class="withdrawal-col">
-                                <h4>Lump Sum Withdrawal</h4>
-                                <p><strong>Total Withdrawal:</strong> <span id="lumpSumTotal">$0</span></p>
-                                <p class="tax-detail"><strong>Income Tax (on Trad 401k):</strong> <span id="lumpSumIncomeTaxes">$0</span></p>
-                                <p class="tax-detail"><strong>Capital Gains (on Brokerage):</strong> <span id="lumpSumCapitalGainsTaxes">$0</span></p>
-                                <p><strong>Total Taxes Paid:</strong> <span id="lumpSumTaxes">$0</span></p>
-                                <p><strong>Net Withdrawal:</strong> <span id="lumpSumNet">$0</span></p>
-                                <p><strong>Effective Tax Rate:</strong> <span id="lumpSumTaxRate">0%</span></p>
+
+                    <!-- Withdrawal Analysis Comparison -->
+                    <div class="card">
+                        <h3>Withdrawal Analysis</h3>
+                        <div class="card-content">
+                            <div class="comparison-row">
+                                <span class="label">Lump Sum Total Withdrawal</span>
+                                <span class="value" id="brokerageLumpSumTotal">$0</span>
+                                <span class="value" id="lumpSumTotal">$0</span>
                             </div>
-                            <div class="withdrawal-col">
-                                <h4>Annual Withdrawal</h4>
-                                <p><strong>Annual Withdrawal:</strong> <span id="annualWithdrawal">$0</span></p>
-                                <p class="tax-detail"><strong>Income Tax (on Trad 401k):</strong> <span id="annualIncomeTaxes">$0</span></p>
-                                <p class="tax-detail"><strong>Capital Gains (on Brokerage):</strong> <span id="annualCapitalGainsTaxes">$0</span></p>
-                                <p><strong>Total Annual Taxes:</strong> <span id="annualTaxes">$0</span></p>
-                                <p><strong>Net Annual Withdrawal:</strong> <span id="annualNet">$0</span></p>
-                                <p><strong>Effective Tax Rate:</strong> <span id="annualTaxRate">0%</span></p>
+                            <div class="comparison-row">
+                                <span class="label">Income Tax (Traditional 401K)</span>
+                                <span class="value">-</span>
+                                <span class="value" id="lumpSumIncomeTaxes">$0</span>
+                            </div>
+                            <div class="comparison-row">
+                                <span class="label">Capital Gains Tax (Brokerage)</span>
+                                <span class="value" id="brokerageLumpSumTaxes">$0</span>
+                                <span class="value" id="lumpSumCapitalGainsTaxes">$0</span>
+                            </div>
+                            <div class="comparison-row total">
+                                <span class="label">Total Taxes Paid</span>
+                                <span class="value" id="brokerageLumpSumTaxes_total">$0</span>
+                                <span class="value" id="lumpSumTaxes">$0</span>
+                            </div>
+                            <div class="comparison-row total final">
+                                <span class="label">Net After-Tax Withdrawal</span>
+                                <span class="value" id="brokerageLumpSumNet">$0</span>
+                                <span class="value" id="lumpSumNet">$0</span>
                             </div>
                         </div>
                         <small class="help-text explanation">Roth 401K and Roth IRA withdrawals are entirely tax-free and are included in your Net Withdrawal.</small>

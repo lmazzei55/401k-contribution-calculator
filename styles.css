@@ -317,10 +317,59 @@ header p {
 }
 
 .scenario-comparison {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-    gap: 30px;
     margin-bottom: 30px;
+}
+
+.comparison-table {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.comparison-table h2 {
+    color: #2c3e50;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    font-size: 1.8rem;
+}
+
+.comparison-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #ecf0f1;
+    align-items: center;
+}
+
+.comparison-row:last-child {
+    border-bottom: none;
+}
+
+.comparison-row .label {
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.comparison-row .value {
+    text-align: right;
+    font-weight: 600;
+    color: #34495e;
+}
+
+.comparison-row.deduction .label {
+    color: #e74c3c;
+}
+
+.comparison-row.total .label {
+    color: #27ae60;
+    font-weight: 600;
+}
+
+.comparison-row.final .label {
+    color: #8e44ad;
+    font-weight: 700;
 }
 
 .scenario-card {

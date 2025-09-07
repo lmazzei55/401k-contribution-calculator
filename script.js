@@ -686,12 +686,13 @@ class App {
         document.getElementById('no401k_grossSalary').textContent = FinancialCalculator.formatCurrency(no401K.grossSalary);
         document.getElementById('no401k_taxableIncome').textContent = FinancialCalculator.formatCurrency(no401K.grossSalary);
         document.getElementById('no401k_taxesPaid').textContent = FinancialCalculator.formatCurrency(no401K.taxes.total);
+        document.getElementById('no401k_afterTaxIncome').textContent = FinancialCalculator.formatCurrency(no401K.grossSalary - no401K.taxes.total);
         document.getElementById('no401k_netIncome').textContent = FinancialCalculator.formatCurrency(no401K.takeHomePay);
         document.getElementById('no401k_livingExpenses').textContent = targetAnnualTakeHome ? FinancialCalculator.formatCurrency(targetAnnualTakeHome) : '-';
         document.getElementById('no401k_totalInvestment').textContent = FinancialCalculator.formatCurrency(no401K.brokerageInvestment);
         document.getElementById('futureValueBrokerage').textContent = FinancialCalculator.formatCurrency(no401K.futureValueBrokerage);
         document.getElementById('no401k_totalFutureValue').textContent = FinancialCalculator.formatCurrency(no401K.futureValueBrokerage);
-        document.getElementById('no401k_years').textContent = inputs.years;
+        document.getElementById('years_display').textContent = inputs.years;
         
         // --- With 401K Scenario ---
         document.getElementById('with401k_grossSalary').textContent = FinancialCalculator.formatCurrency(with401K.grossSalary);
@@ -735,6 +736,7 @@ class App {
         // Brokerage withdrawal taxes
         document.getElementById('brokerageLumpSumTotal').textContent = FinancialCalculator.formatCurrency(brokerageWithdrawalTaxes.lumpSum.total);
         document.getElementById('brokerageLumpSumTaxes').textContent = FinancialCalculator.formatCurrency(brokerageWithdrawalTaxes.lumpSum.taxes);
+        document.getElementById('brokerageLumpSumTaxes_total').textContent = FinancialCalculator.formatCurrency(brokerageWithdrawalTaxes.lumpSum.taxes);
         document.getElementById('brokerageLumpSumNet').textContent = FinancialCalculator.formatCurrency(brokerageWithdrawalTaxes.lumpSum.net);
         document.getElementById('brokerageLumpSumTaxRate').textContent = FinancialCalculator.formatPercent(brokerageWithdrawalTaxes.lumpSum.taxRate);
 
