@@ -711,7 +711,6 @@ class App {
         document.getElementById('futureValueRothIRA').textContent = FinancialCalculator.formatCurrency(with401K.futureValueRothIRA);
         document.getElementById('futureValueBrokerageWith401k').textContent = FinancialCalculator.formatCurrency(with401K.futureValueAdditionalBrokerage);
         document.getElementById('futureValue401k').textContent = FinancialCalculator.formatCurrency(with401K.totalFutureValue);
-        document.getElementById('with401k_years').textContent = inputs.years;
 
         // Benefits
         document.getElementById('taxSavings').textContent = FinancialCalculator.formatCurrency(taxSavings);
@@ -724,26 +723,14 @@ class App {
         document.getElementById('lumpSumCapitalGainsTaxes').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.lumpSum.capitalGainsTaxes);
         document.getElementById('lumpSumTaxes').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.lumpSum.taxes);
         document.getElementById('lumpSumNet').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.lumpSum.net);
-        document.getElementById('lumpSumTaxRate').textContent = FinancialCalculator.formatPercent(withdrawalTaxes.lumpSum.taxRate);
 
-        document.getElementById('annualWithdrawal').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.annual.withdrawal);
-        document.getElementById('annualIncomeTaxes').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.annual.incomeTaxes);
-        document.getElementById('annualCapitalGainsTaxes').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.annual.capitalGainsTaxes);
-        document.getElementById('annualTaxes').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.annual.taxes);
-        document.getElementById('annualNet').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.annual.net);
-        document.getElementById('annualTaxRate').textContent = FinancialCalculator.formatPercent(withdrawalTaxes.annual.taxRate);
 
         // Brokerage withdrawal taxes
         document.getElementById('brokerageLumpSumTotal').textContent = FinancialCalculator.formatCurrency(brokerageWithdrawalTaxes.lumpSum.total);
         document.getElementById('brokerageLumpSumTaxes').textContent = FinancialCalculator.formatCurrency(brokerageWithdrawalTaxes.lumpSum.taxes);
         document.getElementById('brokerageLumpSumTaxes_total').textContent = FinancialCalculator.formatCurrency(brokerageWithdrawalTaxes.lumpSum.taxes);
         document.getElementById('brokerageLumpSumNet').textContent = FinancialCalculator.formatCurrency(brokerageWithdrawalTaxes.lumpSum.net);
-        document.getElementById('brokerageLumpSumTaxRate').textContent = FinancialCalculator.formatPercent(brokerageWithdrawalTaxes.lumpSum.taxRate);
 
-        document.getElementById('brokerageAnnualWithdrawal').textContent = FinancialCalculator.formatCurrency(brokerageWithdrawalTaxes.annual.withdrawal);
-        document.getElementById('brokerageAnnualTaxes').textContent = FinancialCalculator.formatCurrency(brokerageWithdrawalTaxes.annual.taxes);
-        document.getElementById('brokerageAnnualNet').textContent = FinancialCalculator.formatCurrency(brokerageWithdrawalTaxes.annual.net);
-        document.getElementById('brokerageAnnualTaxRate').textContent = FinancialCalculator.formatPercent(brokerageWithdrawalTaxes.annual.taxRate);
     }
 
     updateContributionLimitViz(grossSalary, contributionPercent) {
