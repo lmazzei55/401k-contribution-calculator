@@ -79,12 +79,11 @@ class TaxCalculator {
 
 class FinancialCalculator {
     static calculate401KScenario(grossSalary, contributionPercent, employerMatch, investmentReturn, years, targetTakeHome = null, accountType = 'traditional' /* Unused */, roth401kMax = 0, rothIRA = 0) {
-        const totalContributionAmount = Math.min(grossSalary * (contributionPercent / 100), EMPLOYEE_401K_LIMIT);
+        // contributionPercent is now for Traditional 401K only
+        const trad401kContribution = Math.min(grossSalary * (contributionPercent / 100), EMPLOYEE_401K_LIMIT);
+        const roth401kContribution = Math.min(roth401kMax, EMPLOYEE_401K_LIMIT - trad401kContribution);
+        const total401kContribution = trad401kContribution + roth401kContribution;
         const employerContribution = Math.min(grossSalary * (employerMatch / 100), EMPLOYEE_401K_LIMIT * 0.5);
-
-        // Split total 401k contribution between Traditional and Roth
-        const roth401kContribution = Math.min(totalContributionAmount, roth401kMax);
-        const trad401kContribution = totalContributionAmount - roth401kContribution;
 
         // Roth IRA is a separate, post-tax contribution
         const rothIRAContribution = Math.min(rothIRA, 7000);
@@ -93,10 +92,22 @@ class FinancialCalculator {
         const taxableIncome = grossSalary - trad401kContribution;
         const taxes = TaxCalculator.calculateTotalTaxes(taxableIncome);
         
-        // Calculate take-home pay
-        let takeHomePay = taxableIncome - taxes.total;
-        takeHomePay -= roth401kContribution; // Roth 401k is post-tax
-        takeHomePay -= rothIRAContribution;  // Roth IRA is post-tax
+        // Calculate after-tax income (before Roth contributions)
+        const afterTaxIncome = taxableIncome - taxes.total;
+        
+        // Calculate take-home after living expenses (if target is set)
+        let takeHomeAfterLiving = afterTaxIncome;
+        if (targetTakeHome) {
+            takeHomeAfterLiving = afterTaxIncome - targetTakeHome;
+        }
+        
+        // Calculate take-home after Roth contributions
+        let takeHomeAfterRoth = takeHomeAfterLiving;
+        takeHomeAfterRoth -= roth401kContribution; // Roth 401k is post-tax
+        takeHomeAfterRoth -= rothIRAContribution;  // Roth IRA is post-tax
+        
+        // Final take-home pay
+        const takeHomePay = takeHomeAfterRoth;
 
         // Future value calculations for each bucket
         const futureValueTrad401k = this.calculateFutureValue(trad401kContribution, investmentReturn, years);
@@ -104,17 +115,14 @@ class FinancialCalculator {
         const futureValueEmployer = this.calculateFutureValue(employerContribution, investmentReturn, years);
         const futureValueRothIRA = this.calculateFutureValue(rothIRAContribution, investmentReturn, years);
 
-        // Additional brokerage for excess take-home
-        let additionalBrokerage = 0;
-        if (targetTakeHome && takeHomePay > targetTakeHome) {
-            additionalBrokerage = takeHomePay - targetTakeHome;
-        }
+        // Additional brokerage investment (what's left after all other contributions)
+        const additionalBrokerage = Math.max(0, takeHomeAfterRoth);
         const futureValueAdditionalBrokerage = this.calculateFutureValue(additionalBrokerage, investmentReturn, years);
         
         return {
-            contribution: totalContributionAmount,
+            contribution: trad401kContribution, // Traditional 401K contribution only
             employerContribution,
-            total401KContribution: totalContributionAmount + employerContribution,
+            total401KContribution: total401kContribution + employerContribution,
             trad401kContribution,
             roth401kContribution,
             rothIRAContribution,
@@ -122,6 +130,9 @@ class FinancialCalculator {
             totalFutureValue: futureValueTrad401k + futureValueRoth401k + futureValueEmployer + futureValueRothIRA + futureValueAdditionalBrokerage,
             taxableIncome,
             taxes,
+            afterTaxIncome,
+            takeHomeAfterLiving,
+            takeHomeAfterRoth,
             takeHomePay,
             futureValueTrad401k,
             futureValueRoth401k,
@@ -134,31 +145,34 @@ class FinancialCalculator {
 
     static calculateNo401KScenario(grossSalary, contributionPercent, investmentReturn, years, targetTakeHome = null, rothIRA = 0) {
         const taxes = TaxCalculator.calculateTotalTaxes(grossSalary);
-        let takeHomePay = grossSalary - taxes.total;
+        const afterTaxIncome = grossSalary - taxes.total;
 
         // Roth IRA is a post-tax contribution
         const rothIRAContribution = Math.min(rothIRA, 7000);
-        takeHomePay -= rothIRAContribution;
+        
+        // Calculate take-home after living expenses (if target is set)
+        let takeHomeAfterLiving = afterTaxIncome;
+        if (targetTakeHome) {
+            takeHomeAfterLiving = afterTaxIncome - targetTakeHome;
+        }
+        
+        // Calculate take-home after Roth IRA contribution
+        const takeHomeAfterRoth = takeHomeAfterLiving - rothIRAContribution;
+        const takeHomePay = takeHomeAfterRoth;
+        
         const futureValueRothIRA = this.calculateFutureValue(rothIRAContribution, investmentReturn, years);
 
-        // Calculate brokerage investment
-        let brokerageInvestment = 0;
-        if (targetTakeHome) {
-            // If we have excess beyond target, invest it
-            if (takeHomePay > targetTakeHome) {
-                brokerageInvestment = takeHomePay - targetTakeHome;
-            }
-        } else {
-            // Without target, we invest what would have been the 401K contribution (after-tax)
-            const potentialContribution = Math.min(grossSalary * (contributionPercent / 100), EMPLOYEE_401K_LIMIT);
-            brokerageInvestment = potentialContribution * (1 - (taxes.federal + taxes.state) / grossSalary);
-        }
+        // Calculate brokerage investment (what's left after Roth IRA)
+        const brokerageInvestment = Math.max(0, takeHomeAfterRoth);
         
         // Future value of brokerage investment (after-tax)
         const futureValueBrokerage = this.calculateFutureValue(brokerageInvestment, investmentReturn, years);
         
         return {
             taxes,
+            afterTaxIncome,
+            takeHomeAfterLiving,
+            takeHomeAfterRoth,
             takeHomePay,
             brokerageInvestment,
             rothIRAContribution,
@@ -608,6 +622,10 @@ class App {
         const wealthDifference = with401K.totalFutureValue - no401K.futureValueBrokerage;
         const roi401K = (wealthDifference / (with401K.contribution * inputs.years)) * 100;
 
+        // Get withdrawal type and years
+        const withdrawalType = document.getElementById('withdrawalType')?.value || 'lumpSum';
+        const withdrawalYears = parseInt(document.getElementById('withdrawalYears')?.value || inputs.retirementYears);
+        
         // Calculate withdrawal taxes
         const withdrawalTaxes = FinancialCalculator.calculateCombinedWithdrawalTaxes(
             with401K.futureValueTrad401k,
@@ -617,7 +635,7 @@ class App {
             with401K.futureValueAdditionalBrokerage,
             inputs.retirementIncome, 
             inputs.investmentReturn,
-            inputs.retirementYears
+            withdrawalYears
         );
 
         // Calculate brokerage withdrawal taxes
@@ -662,10 +680,13 @@ class App {
         document.getElementById('no401k_grossSalary').textContent = FinancialCalculator.formatCurrency(no401K.grossSalary);
         document.getElementById('no401k_taxableIncome').textContent = FinancialCalculator.formatCurrency(no401K.grossSalary);
         document.getElementById('no401k_taxesPaid').textContent = FinancialCalculator.formatCurrency(no401K.taxes.total);
-        document.getElementById('no401k_afterTaxIncome').textContent = FinancialCalculator.formatCurrency(no401K.grossSalary - no401K.taxes.total);
-        document.getElementById('no401k_netIncome').textContent = FinancialCalculator.formatCurrency(no401K.takeHomePay);
+        document.getElementById('no401k_afterTaxIncome').textContent = FinancialCalculator.formatCurrency(no401K.afterTaxIncome);
         document.getElementById('no401k_livingExpenses').textContent = targetAnnualTakeHome ? FinancialCalculator.formatCurrency(targetAnnualTakeHome) : '-';
-        document.getElementById('no401k_totalInvestment').textContent = FinancialCalculator.formatCurrency(no401K.brokerageInvestment);
+        document.getElementById('no401k_takeHomeAfterLiving').textContent = FinancialCalculator.formatCurrency(no401K.takeHomeAfterLiving);
+        document.getElementById('no401k_rothIRAContribution').textContent = FinancialCalculator.formatCurrency(no401K.rothIRAContribution);
+        document.getElementById('no401k_takeHomeAfterRoth').textContent = FinancialCalculator.formatCurrency(no401K.takeHomeAfterRoth);
+        document.getElementById('no401k_brokerageInvestment').textContent = FinancialCalculator.formatCurrency(no401K.brokerageInvestment);
+        document.getElementById('no401k_totalInvestment').textContent = FinancialCalculator.formatCurrency(no401K.brokerageInvestment + no401K.rothIRAContribution);
         document.getElementById('futureValueBrokerage').textContent = FinancialCalculator.formatCurrency(no401K.futureValueBrokerage);
         document.getElementById('no401k_totalFutureValue').textContent = FinancialCalculator.formatCurrency(no401K.futureValueBrokerage);
         document.getElementById('years_display').textContent = inputs.years;
@@ -675,12 +696,14 @@ class App {
         document.getElementById('with401k_tradContribution').textContent = FinancialCalculator.formatCurrency(with401K.trad401kContribution);
         document.getElementById('with401k_taxableIncome').textContent = FinancialCalculator.formatCurrency(with401K.taxableIncome);
         document.getElementById('with401k_taxesPaid').textContent = FinancialCalculator.formatCurrency(with401K.taxes.total);
-        document.getElementById('with401k_afterTaxIncome').textContent = FinancialCalculator.formatCurrency(with401K.taxableIncome - with401K.taxes.total);
+        document.getElementById('with401k_afterTaxIncome').textContent = FinancialCalculator.formatCurrency(with401K.afterTaxIncome);
+        document.getElementById('with401k_livingExpenses').textContent = targetAnnualTakeHome ? FinancialCalculator.formatCurrency(targetAnnualTakeHome) : '-';
+        document.getElementById('with401k_takeHomeAfterLiving').textContent = FinancialCalculator.formatCurrency(with401K.takeHomeAfterLiving);
         document.getElementById('with401k_rothContribution').textContent = FinancialCalculator.formatCurrency(with401K.roth401kContribution);
         document.getElementById('with401k_rothIRAContribution').textContent = FinancialCalculator.formatCurrency(with401K.rothIRAContribution);
-        document.getElementById('with401k_netIncome').textContent = FinancialCalculator.formatCurrency(with401K.takeHomePay);
-        document.getElementById('with401k_livingExpenses').textContent = targetAnnualTakeHome ? FinancialCalculator.formatCurrency(targetAnnualTakeHome) : '-';
-        document.getElementById('with401k_totalInvestment').textContent = FinancialCalculator.formatCurrency(with401K.additionalBrokerage);
+        document.getElementById('with401k_takeHomeAfterRoth').textContent = FinancialCalculator.formatCurrency(with401K.takeHomeAfterRoth);
+        document.getElementById('with401k_brokerageInvestment').textContent = FinancialCalculator.formatCurrency(with401K.additionalBrokerage);
+        document.getElementById('with401k_totalInvestment').textContent = FinancialCalculator.formatCurrency(with401K.trad401kContribution + with401K.roth401kContribution + with401K.rothIRAContribution + with401K.additionalBrokerage);
         
         document.getElementById('futureValueTrad401k').textContent = FinancialCalculator.formatCurrency(with401K.futureValueTrad401k);
         document.getElementById('futureValueRoth401k').textContent = FinancialCalculator.formatCurrency(with401K.futureValueRoth401k);
@@ -693,19 +716,36 @@ class App {
         document.getElementById('wealthDifference').textContent = FinancialCalculator.formatCurrency(wealthDifference);
         document.getElementById('roi401k').textContent = FinancialCalculator.formatPercent(roi401K);
 
-        // Withdrawal taxes
-        document.getElementById('lumpSumTotal').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.lumpSum.total);
-        document.getElementById('lumpSumIncomeTaxes').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.lumpSum.incomeTaxes);
-        document.getElementById('lumpSumCapitalGainsTaxes').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.lumpSum.capitalGainsTaxes);
-        document.getElementById('lumpSumTaxes').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.lumpSum.taxes);
-        document.getElementById('lumpSumNet').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.lumpSum.net);
+        // Get withdrawal type to determine which values to display
+        const withdrawalType = document.getElementById('withdrawalType')?.value || 'lumpSum';
+        
+        // Withdrawal taxes - display based on selected type
+        if (withdrawalType === 'distributed') {
+            document.getElementById('lumpSumTotal').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.annual.withdrawal);
+            document.getElementById('lumpSumIncomeTaxes').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.annual.incomeTaxes);
+            document.getElementById('lumpSumCapitalGainsTaxes').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.annual.capitalGainsTaxes);
+            document.getElementById('lumpSumTaxes').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.annual.taxes);
+            document.getElementById('lumpSumNet').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.annual.net);
+        } else {
+            document.getElementById('lumpSumTotal').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.lumpSum.total);
+            document.getElementById('lumpSumIncomeTaxes').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.lumpSum.incomeTaxes);
+            document.getElementById('lumpSumCapitalGainsTaxes').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.lumpSum.capitalGainsTaxes);
+            document.getElementById('lumpSumTaxes').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.lumpSum.taxes);
+            document.getElementById('lumpSumNet').textContent = FinancialCalculator.formatCurrency(withdrawalTaxes.lumpSum.net);
+        }
 
-
-        // Brokerage withdrawal taxes
-        document.getElementById('brokerageLumpSumTotal').textContent = FinancialCalculator.formatCurrency(brokerageWithdrawalTaxes.lumpSum.total);
-        document.getElementById('brokerageLumpSumTaxes').textContent = FinancialCalculator.formatCurrency(brokerageWithdrawalTaxes.lumpSum.taxes);
-        document.getElementById('brokerageLumpSumTaxes_total').textContent = FinancialCalculator.formatCurrency(brokerageWithdrawalTaxes.lumpSum.taxes);
-        document.getElementById('brokerageLumpSumNet').textContent = FinancialCalculator.formatCurrency(brokerageWithdrawalTaxes.lumpSum.net);
+        // Brokerage withdrawal taxes - display based on selected type
+        if (withdrawalType === 'distributed') {
+            document.getElementById('brokerageLumpSumTotal').textContent = FinancialCalculator.formatCurrency(brokerageWithdrawalTaxes.annual.withdrawal);
+            document.getElementById('brokerageLumpSumTaxes').textContent = FinancialCalculator.formatCurrency(brokerageWithdrawalTaxes.annual.taxes);
+            document.getElementById('brokerageLumpSumTaxes_total').textContent = FinancialCalculator.formatCurrency(brokerageWithdrawalTaxes.annual.taxes);
+            document.getElementById('brokerageLumpSumNet').textContent = FinancialCalculator.formatCurrency(brokerageWithdrawalTaxes.annual.net);
+        } else {
+            document.getElementById('brokerageLumpSumTotal').textContent = FinancialCalculator.formatCurrency(brokerageWithdrawalTaxes.lumpSum.total);
+            document.getElementById('brokerageLumpSumTaxes').textContent = FinancialCalculator.formatCurrency(brokerageWithdrawalTaxes.lumpSum.taxes);
+            document.getElementById('brokerageLumpSumTaxes_total').textContent = FinancialCalculator.formatCurrency(brokerageWithdrawalTaxes.lumpSum.taxes);
+            document.getElementById('brokerageLumpSumNet').textContent = FinancialCalculator.formatCurrency(brokerageWithdrawalTaxes.lumpSum.net);
+        }
 
     }
 
@@ -887,6 +927,31 @@ class App {
             annually: 'Annually (1 period/year)'
         };
         document.getElementById('salaryFrequencyDisplay').textContent = frequencyLabels[inputs.salaryFrequency] || inputs.salaryFrequency;
+        
+        // Handle withdrawal type selection
+        const withdrawalTypeSelect = document.getElementById('withdrawalType');
+        const withdrawalYearsGroup = document.getElementById('withdrawalYearsGroup');
+        const withdrawalTotalLabel = document.getElementById('withdrawalTotalLabel');
+        
+        if (withdrawalTypeSelect) {
+            withdrawalTypeSelect.addEventListener('change', (e) => {
+                if (e.target.value === 'distributed') {
+                    withdrawalYearsGroup.style.display = 'block';
+                    withdrawalTotalLabel.textContent = 'Annual Withdrawal';
+                } else {
+                    withdrawalYearsGroup.style.display = 'none';
+                    withdrawalTotalLabel.textContent = 'Total Withdrawal';
+                }
+                this.calculate(); // Recalculate when withdrawal type changes
+            });
+        }
+        
+        const withdrawalYearsInput = document.getElementById('withdrawalYears');
+        if (withdrawalYearsInput) {
+            withdrawalYearsInput.addEventListener('change', () => {
+                this.calculate(); // Recalculate when withdrawal years change
+            });
+        }
 
         // Update investment breakdown
         document.getElementById('totalTrad401kInvestment').textContent = FinancialCalculator.formatCurrency(with401K.trad401kContribution);
