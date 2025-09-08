@@ -91,23 +91,28 @@ class FinancialCalculator {
         // Only traditional 401k contributions reduce taxable income
         const taxableIncome = grossSalary - trad401kContribution;
         const taxes = TaxCalculator.calculateTotalTaxes(taxableIncome);
-        
-        // Calculate after-tax income (before Roth contributions)
-        const afterTaxIncome = taxableIncome - taxes.total;
-        
-        // Calculate take-home after living expenses (if target is set)
-        let takeHomeAfterLiving = afterTaxIncome;
-        if (targetTakeHome) {
-            takeHomeAfterLiving = afterTaxIncome - targetTakeHome;
+
+        // This is the total cash available after all taxes and planned (non-brokerage) investments
+        const discretionaryIncome = grossSalary - trad401kContribution - taxes.total - roth401kContribution - rothIRAContribution;
+
+        // Determine actual living expenses and additional brokerage based on the target
+        let actualLivingExpenses;
+        let additionalBrokerage;
+
+        if (targetTakeHome && discretionaryIncome >= targetTakeHome) {
+            actualLivingExpenses = targetTakeHome;
+            additionalBrokerage = discretionaryIncome - targetTakeHome;
+        } else {
+            actualLivingExpenses = discretionaryIncome;
+            additionalBrokerage = 0;
         }
-        
-        // Calculate take-home after Roth contributions
-        let takeHomeAfterRoth = takeHomeAfterLiving;
-        takeHomeAfterRoth -= roth401kContribution; // Roth 401k is post-tax
-        takeHomeAfterRoth -= rothIRAContribution;  // Roth IRA is post-tax
-        
-        // Final take-home pay
-        const takeHomePay = takeHomeAfterRoth;
+
+        // --- For UI Display ---
+        // Re-calculate the waterfall values to be consistent with the correct logic above.
+        const afterTaxIncome = taxableIncome - taxes.total;
+        const takeHomeAfterLiving = afterTaxIncome - actualLivingExpenses;
+        const takeHomeAfterRoth = takeHomeAfterLiving - roth401kContribution - rothIRAContribution;
+
 
         // Future value calculations for each bucket
         const futureValueTrad401k = this.calculateFutureValue(trad401kContribution, investmentReturn, years);
@@ -116,7 +121,6 @@ class FinancialCalculator {
         const futureValueRothIRA = this.calculateFutureValue(rothIRAContribution, investmentReturn, years);
 
         // Additional brokerage investment (what's left after all other contributions)
-        const additionalBrokerage = Math.max(0, takeHomeAfterRoth);
         const futureValueAdditionalBrokerage = this.calculateFutureValue(additionalBrokerage, investmentReturn, years);
         
         return {
@@ -130,10 +134,12 @@ class FinancialCalculator {
             totalFutureValue: futureValueTrad401k + futureValueRoth401k + futureValueEmployer + futureValueRothIRA + futureValueAdditionalBrokerage,
             taxableIncome,
             taxes,
+            discretionaryIncome, // Pass the correct value to the solver
+            takeHomePay: actualLivingExpenses, // Pass the correct value for UI display
+            // UI Waterfall values
             afterTaxIncome,
             takeHomeAfterLiving,
             takeHomeAfterRoth,
-            takeHomePay,
             futureValueTrad401k,
             futureValueRoth401k,
             futureValueEmployerMatch: futureValueEmployer,
@@ -149,36 +155,41 @@ class FinancialCalculator {
 
         // Roth IRA is a post-tax contribution
         const rothIRAContribution = Math.min(rothIRA, 7000);
-        
-        // Calculate take-home after living expenses (if target is set)
-        let takeHomeAfterLiving = afterTaxIncome;
-        if (targetTakeHome) {
-            takeHomeAfterLiving = afterTaxIncome - targetTakeHome;
+
+        const discretionaryIncome = afterTaxIncome - rothIRAContribution;
+
+        // Determine actual living expenses and additional brokerage based on the target
+        let actualLivingExpenses;
+        let brokerageInvestment;
+
+        if (targetTakeHome && discretionaryIncome >= targetTakeHome) {
+            actualLivingExpenses = targetTakeHome;
+            brokerageInvestment = discretionaryIncome - targetTakeHome;
+        } else {
+            actualLivingExpenses = discretionaryIncome;
+            brokerageInvestment = 0;
         }
         
-        // Calculate take-home after Roth IRA contribution
+        // --- For UI Display ---
+        const takeHomeAfterLiving = afterTaxIncome - actualLivingExpenses;
         const takeHomeAfterRoth = takeHomeAfterLiving - rothIRAContribution;
-        const takeHomePay = takeHomeAfterRoth;
         
         const futureValueRothIRA = this.calculateFutureValue(rothIRAContribution, investmentReturn, years);
-
-        // Calculate brokerage investment (what's left after Roth IRA)
-        const brokerageInvestment = Math.max(0, takeHomeAfterRoth);
-        
-        // Future value of brokerage investment (after-tax)
         const futureValueBrokerage = this.calculateFutureValue(brokerageInvestment, investmentReturn, years);
         
         return {
             taxes,
-            afterTaxIncome,
-            takeHomeAfterLiving,
-            takeHomeAfterRoth,
-            takeHomePay,
+            discretionaryIncome, // Pass the correct value to the solver
+            takeHomePay: actualLivingExpenses, // Pass the correct value for UI display
             brokerageInvestment,
             rothIRAContribution,
             futureValueBrokerage: futureValueBrokerage + futureValueRothIRA, // Combined post-tax investments
             futureValueRothIRA,
-            grossSalary
+            grossSalary,
+            // UI Waterfall values
+            afterTaxIncome,
+            takeHomeAfterLiving,
+            takeHomeAfterRoth,
         };
     }
 
@@ -333,7 +344,7 @@ class FinancialCalculator {
             const scenario = FinancialCalculator.calculate401KScenario(grossSalary, mid, employerMatch, investmentReturn, years, targetAnnualTakeHome, 'traditional', 0, rothIRA);
             
             // Check if this contribution % allows us to meet the target take-home
-            if (scenario.takeHomePay >= targetAnnualTakeHome - 1) {
+            if (scenario.discretionaryIncome >= targetAnnualTakeHome - 1) {
                 // This contribution % still meets target
                 bestPercent = mid;
                 low = mid;
@@ -685,7 +696,7 @@ class App {
         document.getElementById('no401k_takeHomeAfterLiving').textContent = FinancialCalculator.formatCurrency(no401K.takeHomeAfterLiving);
         document.getElementById('no401k_rothIRAContribution').textContent = FinancialCalculator.formatCurrency(no401K.rothIRAContribution);
         document.getElementById('no401k_takeHomeAfterRoth').textContent = FinancialCalculator.formatCurrency(no401K.takeHomeAfterRoth);
-        document.getElementById('no401k_brokerageInvestment').textContent = FinancialCalculator.formatCurrency(no401K.brokerageInvestment);
+        document.getElementById('no401k_brokerageInvestment').textContent = FinancialCalculator.formatCurrency(no401K.additionalBrokerage);
         document.getElementById('no401k_totalInvestment').textContent = FinancialCalculator.formatCurrency(no401K.brokerageInvestment + no401K.rothIRAContribution);
         document.getElementById('futureValueBrokerage').textContent = FinancialCalculator.formatCurrency(no401K.futureValueBrokerage);
         document.getElementById('no401k_totalFutureValue').textContent = FinancialCalculator.formatCurrency(no401K.futureValueBrokerage);
@@ -811,7 +822,7 @@ class App {
             inputs.grossSalary, 0, inputs.employerMatch, inputs.investmentReturn, inputs.years, targetAnnualTakeHome, 'traditional', inputs.roth401kMax, inputs.rothIRA
         );
         
-        if (targetPerPay >= FinancialCalculator.getPeriodTakeHome(scenarioAt0.takeHomePay, inputs.salaryFrequency) - 1) {
+        if (targetPerPay >= FinancialCalculator.getPeriodTakeHome(scenarioAt0.discretionaryIncome, inputs.salaryFrequency) - 1) {
             document.getElementById('contributionPercent').value = 0;
             this.calculate();
             messageEl.textContent = 'Target exceeds 0% contribution take-home; set to 0%.';
